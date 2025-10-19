@@ -1,13 +1,8 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+
 import {
   arrayMove,
   SortableContext,
@@ -17,7 +12,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { DragEndEvent } from "@dnd-kit/core";
 
-import type { DragEndEvent } from "@dnd-kit/core";
 
 type Team = { id: string; name: string };
 type Conference = "east" | "west";
@@ -116,28 +110,66 @@ const WEST_TEAMS = [
 
 function SortableTeam({ id, index, name }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const isCoarse = useCoarsePointer();
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing shadow-sm"
+      className={`flex items-center justify-between w-full rounded-xl border border-white/10
+                  bg-white/5 hover:bg-white/10 px-3 py-2 select-none shadow-sm
+                  ${isCoarse ? "" : "cursor-grab active:cursor-grabbing"}`}
       {...attributes}
-      {...listeners}
+      {...(isCoarse ? {} : listeners)}  // Desktop: entire row is draggable
     >
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
         <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" />
         <span className="font-medium">{name}</span>
       </div>
-      <span className="text-white/40 text-xs">⋮⋮</span>
+
+      {/* Handle — used on touch only */}
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        {...(isCoarse ? listeners : {})}  // Mobile: handle gets the listeners
+        className="ml-2 p-2 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10
+                   cursor-grab active:cursor-grabbing touch-none"
+      >
+        ⋮⋮
+      </button>
     </div>
   );
 }
 
+function useCoarsePointer() {
+  const [coarse, setCoarse] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(pointer: coarse)");
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) =>
+      setCoarse("matches" in e ? e.matches : (e as MediaQueryList).matches);
+    setCoarse(mql.matches);
+    mql.addEventListener?.("change", onChange as any);
+    return () => mql.removeEventListener?.("change", onChange as any);
+  }, []);
+  return coarse;
+}
+
+
 function ListColumn({ title, items, setItems, storageKey, activeTab, setActiveTab, showMobileToggle,}) {
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+  // inside ListColumn
+  const isCoarse = useCoarsePointer();
+
+  const sensors = useSensors(
+    // On touch, require a short long-press to start dragging
+    useSensor(PointerSensor, isCoarse ? { activationConstraint: { delay: 180, tolerance: 6 } } : undefined),
+    // TouchSensor as a fallback for some mobile browsers
+    useSensor(TouchSensor, isCoarse ? { activationConstraint: { delay: 180, tolerance: 6 } } : undefined),
+    useSensor(KeyboardSensor)
+  );
+
   const itemIds = useMemo(() => items.map((t) => t.id), [items]);
 
   function handleDragEnd(event) {
@@ -197,9 +229,9 @@ function ListColumn({ title, items, setItems, storageKey, activeTab, setActiveTa
 
 
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}  modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <div className="grid gap-2">
+          <div className="grid gap-2 overscroll-contain">
             {items.map((t, idx) => (
               <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
             ))}
