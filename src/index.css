@@ -1,0 +1,19 @@
+/* Tailwind v4 — this single import replaces @tailwind base/components/utilities */
+@import "tailwindcss";
+
+/* Reset any default or template button styles */
+@layer base {
+  button {
+    @apply appearance-none bg-transparent text-inherit border-0 outline-none;
+  }
+}
+
+/* Optional global defaults */
+:root {
+  color-scheme: dark;
+  background-color: #0b0f17;
+  color: #fff;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Remove all the old Vite demo CSS below this point — it causes the white buttons */
