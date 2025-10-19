@@ -117,17 +117,19 @@ function SortableTeam({ id, index, name }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between w-full rounded-xl border border-white/10
-                  bg-white/5 hover:bg-white/10 px-3 py-2 select-none shadow-sm
-                  ${isCoarse ? "" : "cursor-grab active:cursor-grabbing"}`}
+      className="flex items-center justify-between w-full rounded-xl border border-white/10
+                 bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing
+                 shadow-sm touch-none"
       {...attributes}
-      {...(isCoarse ? {} : listeners)}  // Desktop: entire row is draggable
+      {...listeners}   // <-- row is draggable on BOTH desktop & mobile
     >
-      <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
         <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" />
         <span className="font-medium">{name}</span>
       </div>
+
+
 
       {/* Handle — used on touch only */}
       <button
@@ -163,10 +165,12 @@ function ListColumn({ title, items, setItems, storageKey, activeTab, setActiveTa
   const isCoarse = useCoarsePointer();
 
   const sensors = useSensors(
-    // On touch, require a short long-press to start dragging
-    useSensor(PointerSensor, isCoarse ? { activationConstraint: { delay: 180, tolerance: 6 } } : undefined),
-    // TouchSensor as a fallback for some mobile browsers
-    useSensor(TouchSensor, isCoarse ? { activationConstraint: { delay: 180, tolerance: 6 } } : undefined),
+    useSensor(
+      PointerSensor,
+      isCoarse
+        ? { activationConstraint: { delay: 220, tolerance: 8 } }  // press & hold on mobile
+        : { activationConstraint: { distance: 4 } }               // small move on desktop
+    ),
     useSensor(KeyboardSensor)
   );
 
