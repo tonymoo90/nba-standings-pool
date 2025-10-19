@@ -15,7 +15,30 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { DragEndEvent } from "@dnd-kit/core";
 
+import type { DragEndEvent } from "@dnd-kit/core";
+
+type Team = { id: string; name: string };
+type Conference = "east" | "west";
+
+type SetTeams = React.Dispatch<React.SetStateAction<Team[]>>;
+
+interface ListColumnProps {
+  title: string;
+  items: Team[];
+  setItems: SetTeams;
+  storageKey: string;
+  activeTab: Conference;
+  setActiveTab: (tab: Conference) => void;
+  showMobileToggle: boolean;
+}
+
+interface SortableTeamProps {
+  id: string;
+  index: number;
+  name: string;
+}
 // Helper function to get logo URLs (for demo, using official CDN)
 const getLogo = (id) => `https://a.espncdn.com/i/teamlogos/nba/500/${id.toLowerCase()}.png`;
 
