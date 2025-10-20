@@ -141,26 +141,21 @@ function SortableTeam({ id, index, name }: SortableTeamProps) {
       ref={setNodeRef}
       style={style}
       className="flex items-center justify-between w-full rounded-xl border border-white/10
-                 bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing
-                 shadow-sm"
+                 bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing shadow-sm"
       {...attributes}
-      {...listeners}                 // entire row is draggable
+      {...listeners}   // <-- whole row drags
       aria-roledescription="sortable"
     >
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
-        <img
-          src={getLogo(id)}
-          alt={name}
-          className="w-5 h-5 object-contain rounded-full bg-white/10"
-          draggable={false}          // <-- important on iOS
-        />
+        <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" draggable={false} />
         <span className="font-medium">{name}</span>
       </div>
       <span className="ml-2 p-2 rounded-md text-white/40">⋮⋮</span>
     </div>
   );
 }
+
 
 
 // ---------- Column with sensors ----------
@@ -171,11 +166,11 @@ function ListColumn({
   const [dragging, setDragging] = React.useState(false);
 
   const sensors = useSensors(
-    useSensor(TouchSensor, { activationConstraint: { delay: 240, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(
       PointerSensor,
-      isCoarse ? { activationConstraint: { delay: 240, tolerance: 8 } }
-               : { activationConstraint: { distance: 4 } }
+      isCoarse ? { activationConstraint: { delay: 200, tolerance: 6 } }
+               : { activationConstraint: { distance: 3 } }
     ),
     useSensor(KeyboardSensor)
   );
