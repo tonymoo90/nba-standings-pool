@@ -76,8 +76,8 @@ const LAST_SEASON_WEST: Team[] = [
   { id: "PHX", name: "Phoenix Suns" },
   { id: "POR", name: "Portland Trail Blazers" },
   { id: "SAS", name: "San Antonio Spurs" },
-  { id: "NOP", name: "New Orleans Pelicans" }, // NOP (not "NO")
-  { id: "UTA", name: "Utah Jazz" },            // UTA (not "UTAH")
+  { id: "NO", name: "New Orleans Pelicans" }, // NOP (not "NO")
+  { id: "UTAH", name: "Utah Jazz" },            // UTA (not "UTAH")
 ];
 
 const EAST_TEAMS: Team[] = [
@@ -142,21 +142,26 @@ function SortableTeam({ id, index, name }: SortableTeamProps) {
       style={style}
       className="flex items-center justify-between w-full rounded-xl border border-white/10
                  bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing
-                 shadow-sm touch-none"
+                 shadow-sm"
       {...attributes}
-      {...listeners}
+      {...listeners}                 // entire row is draggable
       aria-roledescription="sortable"
     >
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
-        <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" />
+        <img
+          src={getLogo(id)}
+          alt={name}
+          className="w-5 h-5 object-contain rounded-full bg-white/10"
+          draggable={false}          // <-- important on iOS
+        />
         <span className="font-medium">{name}</span>
       </div>
-      {/* visual grip only (no listeners needed) */}
       <span className="ml-2 p-2 rounded-md text-white/40">⋮⋮</span>
     </div>
   );
 }
+
 
 // ---------- Column with sensors ----------
 function ListColumn({
@@ -240,19 +245,42 @@ function ListColumn({
       </div>
 
       <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-      >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <div className="grid gap-2 overscroll-contain touch-pan-y">
-            {items.map((t, idx) => (
-              <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={() => {
+            // lock scroll during drag (important for iOS Safari)
+            document.documentElement.classList.add("scroll-locked");
+            document.body.classList.add("scroll-locked");
+          }}
+          onDragEnd={(event) => {
+            // unlock scroll
+            document.documentElement.classList.remove("scroll-locked");
+            document.body.classList.remove("scroll-locked");
+
+            const { active, over } = event;
+            if (!over || active.id === over.id) return;
+
+            const oldIndex = items.findIndex((i) => i.id === active.id);
+            const newIndex = items.findIndex((i) => i.id === over.id);
+            const next = arrayMove(items, oldIndex, newIndex);
+
+            setItems(next);
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(next));
+            } catch {}
+          }}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        >
+          {/* 🧩 Sortable context defines draggable items */}
+          <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="grid gap-2 overscroll-contain touch-pan-y">
+              {items.map((t, idx) => (
+                <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
     </div>
   );
 }
