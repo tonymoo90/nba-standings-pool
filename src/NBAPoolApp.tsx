@@ -108,9 +108,8 @@ const WEST_TEAMS = [
   { id: "UTAH", name: "Utah Jazz" },
 ];
 
-function SortableTeam({ id, index, name }) {
+function SortableTeam({ id, index, name }: SortableTeamProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const isCoarse = useCoarsePointer();
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
@@ -119,31 +118,23 @@ function SortableTeam({ id, index, name }) {
       style={style}
       className="flex items-center justify-between w-full rounded-xl border border-white/10
                  bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing
-                 shadow-sm touch-none"
+                 shadow-sm touch-none"            // <— key for iOS
       {...attributes}
-      {...listeners}   // <-- row is draggable on BOTH desktop & mobile
+      {...listeners}                              // <— row handles drag everywhere
+      aria-roledescription="sortable"
     >
-    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
         <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" />
         <span className="font-medium">{name}</span>
       </div>
 
-
-
-      {/* Handle — used on touch only */}
-      <button
-        type="button"
-        aria-label="Drag to reorder"
-        {...(isCoarse ? listeners : {})}  // Mobile: handle gets the listeners
-        className="ml-2 p-2 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10
-                   cursor-grab active:cursor-grabbing touch-none"
-      >
-        ⋮⋮
-      </button>
+      {/* visual grip only; no listeners */}
+      <span className="ml-2 p-2 rounded-md text-white/40">⋮⋮</span>
     </div>
   );
 }
+
 
 function useCoarsePointer() {
   const [coarse, setCoarse] = React.useState(false);
@@ -162,14 +153,20 @@ function useCoarsePointer() {
 
 function ListColumn({ title, items, setItems, storageKey, activeTab, setActiveTab, showMobileToggle,}) {
   // inside ListColumn
+  // inside ListColumn()
   const isCoarse = useCoarsePointer();
 
   const sensors = useSensors(
+    // Touch first (iOS Safari likes an explicit TouchSensor)
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 220, tolerance: 8 },
+    }),
+    // PointerSensor works on modern iOS, keep it too
     useSensor(
       PointerSensor,
       isCoarse
-        ? { activationConstraint: { delay: 220, tolerance: 8 } }  // press & hold on mobile
-        : { activationConstraint: { distance: 4 } }               // small move on desktop
+        ? { activationConstraint: { delay: 220, tolerance: 8 } } // press & hold on phones
+        : { activationConstraint: { distance: 4 } }              // tiny move on desktop
     ),
     useSensor(KeyboardSensor)
   );
