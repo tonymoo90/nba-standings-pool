@@ -43,8 +43,8 @@ const LAST_SEASON_WEST: Team[] = [
   { id: "PHX", name: "Phoenix Suns" },
   { id: "POR", name: "Portland Trail Blazers" },
   { id: "SAS", name: "San Antonio Spurs" },
-  { id: "NOP", name: "New Orleans Pelicans" },
-  { id: "UTA", name: "Utah Jazz" },
+  { id: "NO", name: "New Orleans Pelicans" },
+  { id: "UTAH", name: "Utah Jazz" },
 ];
 
 const EAST_TEAMS: Team[] = [
@@ -74,13 +74,13 @@ const WEST_TEAMS: Team[] = [
   { id: "LAL", name: "Los Angeles Lakers" },
   { id: "MEM", name: "Memphis Grizzlies" },
   { id: "MIN", name: "Minnesota Timberwolves" },
-  { id: "NOP", name: "New Orleans Pelicans" },
+  { id: "NO", name: "New Orleans Pelicans" },
   { id: "OKC", name: "Oklahoma City Thunder" },
   { id: "PHX", name: "Phoenix Suns" },
   { id: "POR", name: "Portland Trail Blazers" },
   { id: "SAC", name: "Sacramento Kings" },
   { id: "SAS", name: "San Antonio Spurs" },
-  { id: "UTA", name: "Utah Jazz" },
+  { id: "UTAH", name: "Utah Jazz" },
 ];
 
 // ---------- Reusable row (with handle) ----------
@@ -117,6 +117,7 @@ function ListColumn({
   activeTab,
   setActiveTab,
   showMobileToggle,
+  isMobile = false,
 }: {
   title: string;
   list: Team[];
@@ -124,6 +125,7 @@ function ListColumn({
   activeTab: Conference;
   setActiveTab: (tab: Conference) => void;
   showMobileToggle: boolean;
+  isMobile?: boolean;
 }) {
   return (
     <div className="w-full">
@@ -159,7 +161,9 @@ function ListColumn({
             </h3>
           )}
         </div>
-        <span className="text-[10px] text-white/40">drag using ⋮⋮ handle</span>
+        <span className="text-[10px] text-white/40">
+          {isMobile ? "drag using ⋮⋮" : "drag to reorder"}
+        </span>
       </div>
 
       <div className="space-y-3">
@@ -167,7 +171,8 @@ function ListColumn({
           list={list}
           setList={setList}
           animation={200}
-          handle=".drag-handle"
+          className="flex flex-col gap-2"    // or "space-y-3"
+          handle={isMobile ? ".drag-handle" : undefined}
           ghostClass="sortable-ghost"
           dragClass="sortable-drag"
         >
@@ -277,6 +282,7 @@ export default function NBAPoolApp() {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     showMobileToggle={true}
+                    isMobile={true}
                   />
                 </div>
               ) : (
@@ -288,6 +294,7 @@ export default function NBAPoolApp() {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     showMobileToggle={true}
+                    isMobile={true}
                   />
                 </div>
               )}
@@ -303,6 +310,7 @@ export default function NBAPoolApp() {
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   showMobileToggle={false}
+                  isMobile={false}
                 />
               </div>
               <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
@@ -313,6 +321,7 @@ export default function NBAPoolApp() {
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   showMobileToggle={false}
+                  isMobile={false}
                 />
               </div>
             </div>
