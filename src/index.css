@@ -8,6 +8,24 @@
   }
 }
 
+/* Tailwind version */
+@layer utilities {
+  .sortable-chosen { 
+    @apply ring-2 ring-indigo-500; 
+  }
+  .sortable-ghost  { 
+    @apply opacity-30 bg-white/20; 
+  }
+  .sortable-drag   { 
+    @apply cursor-grabbing opacity-100 shadow-2xl scale-105;
+  }
+}
+
+/* Hide the original element while dragging */
+.sortable-chosen:not(.sortable-ghost) {
+  opacity: 0 !important;
+}
+
 /* Optional global defaults */
 :root {
   color-scheme: dark;
@@ -15,13 +33,3 @@
   color: #fff;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
-
-/* prevents the page from moving while dragging on iOS */
-.scroll-locked {
-  position: fixed;
-  overflow: hidden;
-  inset: 0;
-  width: 100%;
-}
-
-/* Remove all the old Vite demo CSS below this point — it causes the white buttons */

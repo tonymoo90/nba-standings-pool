@@ -1,49 +1,16 @@
-// NBAPoolApp.tsx
 import * as React from "react";
-import { useState, useMemo } from "react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useState } from "react";
+import { ReactSortable } from "react-sortablejs";
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
 type Conference = "east" | "west";
-type SetTeams = React.Dispatch<React.SetStateAction<Team[]>>;
-
-interface ListColumnProps {
-  title: string;
-  items: Team[];
-  setItems: SetTeams;
-  storageKey: string;
-  activeTab: Conference;
-  setActiveTab: (tab: Conference) => void;
-  showMobileToggle: boolean;
-}
-interface SortableTeamProps {
-  id: string;
-  index: number;
-  name: string;
-}
 
 // ---------- Utils ----------
 const getLogo = (id: string) =>
   `https://a.espncdn.com/i/teamlogos/nba/500/${id.toLowerCase()}.png`;
 
-// ------------- Demo data (make sure IDs match ESPN's slugs) -------------
+// ------------- Demo data (IDs match ESPN) -------------
 const LAST_SEASON_EAST: Team[] = [
   { id: "CLE", name: "Cleveland Cavaliers" },
   { id: "BOS", name: "Boston Celtics" },
@@ -76,8 +43,8 @@ const LAST_SEASON_WEST: Team[] = [
   { id: "PHX", name: "Phoenix Suns" },
   { id: "POR", name: "Portland Trail Blazers" },
   { id: "SAS", name: "San Antonio Spurs" },
-  { id: "NO", name: "New Orleans Pelicans" }, // NOP (not "NO")
-  { id: "UTAH", name: "Utah Jazz" },            // UTA (not "UTAH")
+  { id: "NOP", name: "New Orleans Pelicans" },
+  { id: "UTA", name: "Utah Jazz" },
 ];
 
 const EAST_TEAMS: Team[] = [
@@ -107,193 +74,139 @@ const WEST_TEAMS: Team[] = [
   { id: "LAL", name: "Los Angeles Lakers" },
   { id: "MEM", name: "Memphis Grizzlies" },
   { id: "MIN", name: "Minnesota Timberwolves" },
-  { id: "NOP", name: "New Orleans Pelicans" }, // NOP
+  { id: "NOP", name: "New Orleans Pelicans" },
   { id: "OKC", name: "Oklahoma City Thunder" },
   { id: "PHX", name: "Phoenix Suns" },
   { id: "POR", name: "Portland Trail Blazers" },
   { id: "SAC", name: "Sacramento Kings" },
   { id: "SAS", name: "San Antonio Spurs" },
-  { id: "UTA", name: "Utah Jazz" },            // UTA
+  { id: "UTA", name: "Utah Jazz" },
 ];
 
-// ---------- Pointer detection ----------
-function useCoarsePointer() {
-  const [coarse, setCoarse] = React.useState(false);
-  React.useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mql = window.matchMedia("(pointer: coarse)");
-    const onChange = (e: MediaQueryListEvent | MediaQueryList) =>
-      setCoarse("matches" in e ? e.matches : (e as MediaQueryList).matches);
-    setCoarse(mql.matches);
-    mql.addEventListener?.("change", onChange as any);
-    return () => mql.removeEventListener?.("change", onChange as any);
-  }, []);
-  return coarse;
-}
-
-// ---------- Draggable row ----------
-function SortableTeam({ id, index, name }: SortableTeamProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-
+// ---------- Reusable row (with handle) ----------
+function TeamRow({ t, index }: { t: Team; index: number }) {
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center justify-between w-full rounded-xl border border-white/10
-                 bg-white/5 hover:bg-white/10 px-3 py-2 select-none cursor-grab active:cursor-grabbing shadow-sm"
-      {...attributes}
-      {...listeners}   // <-- whole row drags
-      aria-roledescription="sortable"
-    >
+    <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 select-none shadow-sm">
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
-        <img src={getLogo(id)} alt={name} className="w-5 h-5 object-contain rounded-full bg-white/10" draggable={false} />
-        <span className="font-medium">{name}</span>
+        <img
+          src={getLogo(t.id)}
+          alt={t.name}
+          className="w-5 h-5 object-contain rounded-full bg-white/10"
+          draggable={false}
+        />
+        <span className="font-medium">{t.name}</span>
       </div>
-      <span className="ml-2 p-2 rounded-md text-white/40">⋮⋮</span>
+
+      {/* Drag handle */}
+      <div
+        className="drag-handle ml-2 px-2 py-1 rounded-md text-white/60 hover:text-white cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        ⋮⋮
+      </div>
     </div>
   );
 }
 
-
-
-// ---------- Column with sensors ----------
+// ---------- Column (SortableJS) ----------
 function ListColumn({
-  title, items, setItems, storageKey, activeTab, setActiveTab, showMobileToggle,
-}: ListColumnProps) {
-  const isCoarse = useCoarsePointer();
-  const [dragging, setDragging] = React.useState(false);
-
-  const sensors = useSensors(
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(
-      PointerSensor,
-      isCoarse ? { activationConstraint: { delay: 200, tolerance: 6 } }
-               : { activationConstraint: { distance: 3 } }
-    ),
-    useSensor(KeyboardSensor)
-  );
-
-  const itemIds = useMemo(() => items.map(t => t.id), [items]);
-
+  title,
+  list,
+  setList,
+  activeTab,
+  setActiveTab,
+  showMobileToggle,
+}: {
+  title: string;
+  list: Team[];
+  setList: (next: Team[]) => void;
+  activeTab: Conference;
+  setActiveTab: (tab: Conference) => void;
+  showMobileToggle: boolean;
+}) {
   return (
     <div className="w-full">
-      {/* header row identical to your version */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showMobileToggle ? (
             <>
-              <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">Conference</h3>
+              <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
+                Conference
+              </h3>
               <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
                 <button
-                  onClick={() => setActiveTab('east')}
-                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition-all ${
-                    activeTab === 'east' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/70 hover:text-white'
+                  onClick={() => setActiveTab("east")}
+                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition ${
+                    activeTab === "east" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
                   }`}
-                >East</button>
+                >
+                  East
+                </button>
                 <button
-                  onClick={() => setActiveTab('west')}
-                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition-all ${
-                    activeTab === 'west' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/70 hover:text-white'
+                  onClick={() => setActiveTab("west")}
+                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition ${
+                    activeTab === "west" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
                   }`}
-                >West</button>
+                >
+                  West
+                </button>
               </div>
             </>
           ) : (
-            <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">{title}</h3>
+            <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
+              {title}
+            </h3>
           )}
         </div>
-        <span className="text-[10px] text-white/40">drag to reorder</span>
+        <span className="text-[10px] text-white/40">drag using ⋮⋮ handle</span>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={() => setDragging(true)}
-        onDragEnd={(event) => {
-          setDragging(false);
-          const { active, over } = event;
-          if (!over || active.id === over.id) return;
-          const oldIndex = items.findIndex(i => i.id === active.id);
-          const newIndex = items.findIndex(i => i.id === over.id);
-          const next = arrayMove(items, oldIndex, newIndex);
-          setItems(next);
-          try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
-        }}
-        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-      >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          {/* While dragging: prevent the list itself from scrolling; otherwise allow normal vertical scroll. */}
-          <div
-            className={`grid gap-2 select-none overscroll-y-contain ${
-              dragging ? 'touch-none' : 'touch-pan-y'
-            }`}
-          >
-            {items.map((t, idx) => (
-              <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="space-y-3">
+        <ReactSortable
+          list={list}
+          setList={setList}
+          animation={200}
+          handle=".drag-handle"
+          ghostClass="sortable-ghost"
+          dragClass="sortable-drag"
+        >
+          {list.map((t, i) => (
+            <TeamRow key={t.id} t={t} index={i} />
+          ))}
+        </ReactSortable>
+      </div>
     </div>
   );
 }
 
-
-// ---------- (Optional) scoring helpers — comment out if Netlify enforces noUnusedLocals ----------
-/*
-function scoreConference(userList: Team[], actualList: Team[]) {
-  const pickRank = new Map(userList.map((t, i) => [t.id, i + 1]));
-  const actualRank = new Map(actualList.map((t, i) => [t.id, i + 1]));
-  let points = 0;
-  for (const t of actualList) {
-    const pr = pickRank.get(t.id);
-    const ar = actualRank.get(t.id);
-    if (!pr || !ar) continue;
-    const diff = Math.abs(pr - ar);
-    if (diff === 0) points += 5;
-    else if (diff === 1) points += 3;
-    else if (diff === 2) points += 1;
-  }
-  return { points, max: 75 };
-}
-*/
-
 // ---------- App ----------
 export default function NBAPoolApp() {
-  const [east, setEast] = useState<Team[]>(
-    () => JSON.parse(localStorage.getItem("pool_east") || "null") || EAST_TEAMS
-  );
-  const [west, setWest] = useState<Team[]>(
-    () => JSON.parse(localStorage.getItem("pool_west") || "null") || WEST_TEAMS
-  );
+  const [east, setEast] = useState<Team[]>(EAST_TEAMS);
+  const [west, setWest] = useState<Team[]>(WEST_TEAMS);
   const [activeTab, setActiveTab] = useState<Conference>("east");
   const [page, setPage] = useState<"picks" | "pool">("picks");
+  const [entries, setEntries] = useState<any[]>([]);
 
   function autofillLastSeason() {
     setEast(LAST_SEASON_EAST);
     setWest(LAST_SEASON_WEST);
-    localStorage.setItem("pool_east", JSON.stringify(LAST_SEASON_EAST));
-    localStorage.setItem("pool_west", JSON.stringify(LAST_SEASON_WEST));
   }
+
   function resetAlphabetical() {
     setEast([...EAST_TEAMS]);
     setWest([...WEST_TEAMS]);
-    localStorage.setItem("pool_east", JSON.stringify(EAST_TEAMS));
-    localStorage.setItem("pool_west", JSON.stringify(WEST_TEAMS));
   }
+
   function saveMyEntry(name = "You") {
     const entry = {
-      id: crypto?.randomUUID?.() || String(Date.now()),
+      id: String(Date.now()),
       name,
-      east,
-      west,
+      east: [...east],
+      west: [...west],
       submittedAt: new Date().toISOString(),
     };
-    const next = JSON.parse(localStorage.getItem("pool_entries") || "[]");
-    next.push(entry);
-    localStorage.setItem("pool_entries", JSON.stringify(next));
+    setEntries([...entries, entry]);
     alert(`Saved entry for ${name}!`);
   }
 
@@ -324,12 +237,12 @@ export default function NBAPoolApp() {
                   page === "pool" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
                 }`}
               >
-                Standings
+                Standings ({entries.length})
               </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
             <button
               onClick={autofillLastSeason}
               className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
@@ -351,60 +264,98 @@ export default function NBAPoolApp() {
           </div>
         </div>
 
-        {/* Mobile (single column with toggle) */}
-        <div className="block md:hidden mb-6">
-          {activeTab === "east" ? (
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-              <ListColumn
-                title="Eastern Conference"
-                items={east}
-                setItems={setEast}
-                storageKey="pool_east"
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                showMobileToggle={true}
-              />
+        {page === "picks" ? (
+          <>
+            {/* Mobile: single column with toggle */}
+            <div className="block md:hidden mb-6">
+              {activeTab === "east" ? (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  <ListColumn
+                    title="Eastern Conference"
+                    list={east}
+                    setList={setEast}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    showMobileToggle={true}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  <ListColumn
+                    title="Western Conference"
+                    list={west}
+                    setList={setWest}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    showMobileToggle={true}
+                  />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-              <ListColumn
-                title="Western Conference"
-                items={west}
-                setItems={setWest}
-                storageKey="pool_west"
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                showMobileToggle={true}
-              />
-            </div>
-          )}
-        </div>
 
-        {/* Desktop (two columns, no toggle) */}
-        <div className="hidden md:grid grid-cols-2 gap-6">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <ListColumn
-              title="Eastern Conference"
-              items={east}
-              setItems={setEast}
-              storageKey="pool_east"
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              showMobileToggle={false}
-            />
+            {/* Desktop: two columns, no toggle */}
+            <div className="hidden md:grid grid-cols-2 gap-6">
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                <ListColumn
+                  title="Eastern Conference"
+                  list={east}
+                  setList={setEast}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  showMobileToggle={false}
+                />
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                <ListColumn
+                  title="Western Conference"
+                  list={west}
+                  setList={setWest}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  showMobileToggle={false}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
+            <h2 className="text-xl font-semibold mb-4">Saved Entries</h2>
+            {entries.length === 0 ? (
+              <p className="text-white/60">No entries saved yet. Make your picks and save them!</p>
+            ) : (
+              <div className="space-y-4">
+                {entries.map((entry) => (
+                  <div key={entry.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold">{entry.name}</h3>
+                      <span className="text-xs text-white/60">
+                        {new Date(entry.submittedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-white/60 mb-1">East Top 5:</p>
+                        <ol className="text-white/80">
+                          {entry.east.slice(0, 5).map((t: Team, i: number) => (
+                            <li key={t.id}>{i + 1}. {t.name}</li>
+                          ))}
+                        </ol>
+                      </div>
+                      <div>
+                        <p className="text-white/60 mb-1">West Top 5:</p>
+                        <ol className="text-white/80">
+                          {entry.west.slice(0, 5).map((t: Team, i: number) => (
+                            <li key={t.id}>{i + 1}. {t.name}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <ListColumn
-              title="Western Conference"
-              items={west}
-              setItems={setWest}
-              storageKey="pool_west"
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              showMobileToggle={false}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
