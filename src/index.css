@@ -16,4 +16,12 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
+/* prevents the page from moving while dragging on iOS */
+.scroll-locked {
+  position: fixed;
+  overflow: hidden;
+  inset: 0;
+  width: 100%;
+}
+
 /* Remove all the old Vite demo CSS below this point — it causes the white buttons */
