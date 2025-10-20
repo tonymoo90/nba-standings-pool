@@ -165,125 +165,86 @@ function SortableTeam({ id, index, name }: SortableTeamProps) {
 
 // ---------- Column with sensors ----------
 function ListColumn({
-  title,
-  items,
-  setItems,
-  storageKey,
-  activeTab,
-  setActiveTab,
-  showMobileToggle,
+  title, items, setItems, storageKey, activeTab, setActiveTab, showMobileToggle,
 }: ListColumnProps) {
   const isCoarse = useCoarsePointer();
+  const [dragging, setDragging] = React.useState(false);
 
-  // iOS Safari is fussy; having BOTH TouchSensor (with delay) and PointerSensor is the most reliable
   const sensors = useSensors(
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 240, tolerance: 8 }, // press & hold
-    }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 240, tolerance: 8 } }),
     useSensor(
       PointerSensor,
-      isCoarse
-        ? { activationConstraint: { delay: 240, tolerance: 8 } } // phones/tablets
-        : { activationConstraint: { distance: 4 } }              // desktop tiny move
+      isCoarse ? { activationConstraint: { delay: 240, tolerance: 8 } }
+               : { activationConstraint: { distance: 4 } }
     ),
     useSensor(KeyboardSensor)
   );
 
-  const itemIds = useMemo(() => items.map((t) => t.id), [items]);
-
-  function handleDragEnd(event: any) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = items.findIndex((i) => i.id === active.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
-    const next = arrayMove(items, oldIndex, newIndex);
-    setItems(next);
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
-    } catch {}
-  }
+  const itemIds = useMemo(() => items.map(t => t.id), [items]);
 
   return (
     <div className="w-full">
+      {/* header row identical to your version */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showMobileToggle ? (
             <>
-              <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
-                Conference
-              </h3>
+              <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">Conference</h3>
               <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
                 <button
-                  onClick={() => setActiveTab("east")}
-                  className={`px-6 py-3.5 text-sm font-semibold transition-all duration-200 rounded-full ${
-                    activeTab === "east"
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "text-white/70 hover:text-white"
+                  onClick={() => setActiveTab('east')}
+                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition-all ${
+                    activeTab === 'east' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/70 hover:text-white'
                   }`}
-                >
-                  East
-                </button>
+                >East</button>
                 <button
-                  onClick={() => setActiveTab("west")}
-                  className={`px-6 py-3.5 text-sm font-semibold transition-all duration-200 rounded-full ${
-                    activeTab === "west"
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "text-white/70 hover:text-white"
+                  onClick={() => setActiveTab('west')}
+                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition-all ${
+                    activeTab === 'west' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/70 hover:text-white'
                   }`}
-                >
-                  West
-                </button>
+                >West</button>
               </div>
             </>
           ) : (
-            <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
-              {title}
-            </h3>
+            <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">{title}</h3>
           )}
         </div>
         <span className="text-[10px] text-white/40">drag to reorder</span>
       </div>
 
       <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={() => {
-            // lock scroll during drag (important for iOS Safari)
-            document.documentElement.classList.add("scroll-locked");
-            document.body.classList.add("scroll-locked");
-          }}
-          onDragEnd={(event) => {
-            // unlock scroll
-            document.documentElement.classList.remove("scroll-locked");
-            document.body.classList.remove("scroll-locked");
-
-            const { active, over } = event;
-            if (!over || active.id === over.id) return;
-
-            const oldIndex = items.findIndex((i) => i.id === active.id);
-            const newIndex = items.findIndex((i) => i.id === over.id);
-            const next = arrayMove(items, oldIndex, newIndex);
-
-            setItems(next);
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(next));
-            } catch {}
-          }}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-        >
-          {/* 🧩 Sortable context defines draggable items */}
-          <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="grid gap-2 overscroll-contain touch-pan-y">
-              {items.map((t, idx) => (
-                <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setDragging(true)}
+        onDragEnd={(event) => {
+          setDragging(false);
+          const { active, over } = event;
+          if (!over || active.id === over.id) return;
+          const oldIndex = items.findIndex(i => i.id === active.id);
+          const newIndex = items.findIndex(i => i.id === over.id);
+          const next = arrayMove(items, oldIndex, newIndex);
+          setItems(next);
+          try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+        }}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {/* While dragging: prevent the list itself from scrolling; otherwise allow normal vertical scroll. */}
+          <div
+            className={`grid gap-2 select-none overscroll-y-contain ${
+              dragging ? 'touch-none' : 'touch-pan-y'
+            }`}
+          >
+            {items.map((t, idx) => (
+              <SortableTeam key={t.id} id={t.id} index={idx} name={t.name} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
+
 
 // ---------- (Optional) scoring helpers — comment out if Netlify enforces noUnusedLocals ----------
 /*
