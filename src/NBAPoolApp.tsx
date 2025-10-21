@@ -764,119 +764,106 @@ export default function NBAPoolApp() {
 
 
       <div className="mx-auto max-w-6xl px-6 py-8 text-left">
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between">
-              
-   
+  {/* Top bar: title left, logout right */}
+  <div className="mb-6">
+    <div className="flex items-center justify-between">
+      <h1 className="text-2xl sm:text-3xl mb-4 font-semibold tracking-tight uppercase">
+        NBA Confidence
+      </h1>
 
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-4 uppercase">
-              NBA Confidence
-            </h1>
+      {(user || taggedEmail) && (
+        <button
+          type="button"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            setTaggedEmail(null);
+          }}
+          className="rounded-xl px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+        >
+          Log Out
+        </button>
+      )}
+    </div>
 
-            <div className="flex flex-wrap gap-2 mt-2 mb-4">
-              <button
-                onClick={() => setPage("picks")}
-                className={`relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
-                  ${page === "picks"
-                    ? "bg-white/20 text-white"
-                    : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"}`}
-              >
-                My Picks
-                {entries.length > 0 && (
-                  <span
-                    className="ml-1 inline-flex h-5 items-center justify-center
-                               rounded-full text-[12px] font-semibold text-white/80
-                               leading-none"
-                  >
-                    ({entries.length})
-                  </span>
-                )}
-              </button>
-
-
-
-              <button
-                onClick={() => setPage("pool")}
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  page === "pool" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
-                }`}
-              >
-                Standings
-              </button>
-              <button
-                onClick={() => setPage("how")}
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  page === "how" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
-                }`}
-              >
-                How it works
-              </button>
-          {/* Replace the bottom auth buttons with just "Log Out" when authenticated */}
-          {user || taggedEmail ? (
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                setTaggedEmail(null);
-              }}
-              className="rounded-xl px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
-            >
-              Log Out
-            </button>
-          ) : null}
-
-              </div>
-            </div>
-
-          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-             {page === "picks" && (
-            <>
-            <button
-              onClick={autofillLastSeason}
-              className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
-            >
-              2024–25 Results
-            </button>
-            <button
-              onClick={resetAlphabetical}
-              className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
-            >
-              A–Z
-            </button>
-            <button
-              onClick={() => {
-                // extra guard: if user isn’t authed (shouldn’t happen due to gate), bounce
-                if (isAuthRequired) { setShowAuth(true); return; }
-                setShowNameModal(true);
-              }}
-              className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
-            >
-              Save My Entry
-            </button>
-
-                </>
-            )}
-
-              
-            </div>
-
-          </div>
-
-        {page === "picks" && (
-          <>
-            <SavedEntriesRow
-              entries={entries}
-              onOpen={(e) => setSelectedEntry(e)}
-            />
-
-            {selectedEntry && (
-              <SavedEntryView
-                entry={selectedEntry}
-                onClose={() => setSelectedEntry(null)}
-              />
-            )}
-          </>
+    {/* Page tabs under the title (left) */}
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button
+        onClick={() => setPage("picks")}
+        className={`relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
+          ${page === "picks"
+            ? "bg-white/20 text-white"
+            : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"}`}
+      >
+        My Picks
+        {entries.length > 0 && (
+          <span className="ml-1 inline-flex h-5 items-center justify-center rounded-full text-[12px] font-semibold text-white/80 leading-none">
+            ({entries.length})
+          </span>
         )}
+      </button>
+
+      <button
+        onClick={() => setPage("pool")}
+        className={`rounded-xl px-3 py-2 text-sm font-medium ${
+          page === "pool" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
+        }`}
+      >
+        Standings
+      </button>
+
+      <button
+        onClick={() => setPage("how")}
+        className={`rounded-xl px-3 py-2 text-sm font-medium ${
+          page === "how" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
+        }`}
+      >
+        How it works
+      </button>
+    </div>
+  </div>
+
+  {/* ----- Saved entries goes here (ABOVE the toolbar) ----- */}
+  {page === "picks" && (
+    <>
+      <SavedEntriesRow
+        entries={entries}
+        onOpen={(e) => setSelectedEntry(e)}
+      />
+
+      {/* Toolbar: 2024–25 Results / A–Z / Save My Entry */}
+      <div className="flex flex-wrap gap-2 mt-2 mb-6">
+        <button
+          onClick={autofillLastSeason}
+          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
+        >
+          2024–25 Results
+        </button>
+        <button
+          onClick={resetAlphabetical}
+          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
+        >
+          A–Z
+        </button>
+        <button
+          onClick={() => {
+            if (isAuthRequired) { setShowAuth(true); return; }
+            setShowNameModal(true);
+          }}
+          className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
+        >
+          Save My Entry
+        </button>
+      </div>
+
+      {selectedEntry && (
+        <SavedEntryView
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+        />
+      )}
+    </>
+  )}
+
 
 
 
