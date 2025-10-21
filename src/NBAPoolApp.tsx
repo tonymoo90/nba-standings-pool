@@ -1019,24 +1019,34 @@ export default function NBAPoolApp() {
   return (
     <button
       onClick={onClick}
-      className="group relative shrink-0 w-[300px] overflow-hidden rounded-2xl
-                 border border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]
-                 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="
+        group relative shrink-0
+        w-[240px] sm:w-[260px] md:w-[300px]
+        snap-start
+        overflow-hidden rounded-2xl
+        border border-white/10 bg-white/5
+        hover:border-white/20 hover:bg-white/[0.08]
+        transition focus:outline-none focus:ring-2 focus:ring-indigo-500
+      "
     >
-      {/* strong internal padding and spacing */}
-      <div className="px-6 py-6 mt-1 mb-1 space-y-5 text-left">
+      <div className="px-5 py-4 md:px-6 md:py-5 space-y-3 text-left">
+        {/* top row */}
         <div className="flex items-center justify-between">
-          <div className="truncate text-base text-small text-white/90">{entry.name}</div>
+          <div className="truncate text-[15px] md:text-base font-semibold text-white/90">
+            {entry.name}
+          </div>
           <div className="ml-3 shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
             0
           </div>
         </div>
 
-        {/* rows */}
-        <div className="space-y-3">
+        {/* ✅ Show logos everywhere > 640px; hide only on phones */}
+        <div className="space-y-3 max-sm:hidden">
           <LogoRow label="E" teams={entry.east} limit={8} size={22} overlap={9} />
           <LogoRow label="W" teams={entry.west} limit={8} size={22} overlap={9} />
         </div>
+
+        {/* Optional ultra-compact line for phones */}
       </div>
     </button>
   );
@@ -1046,21 +1056,24 @@ export default function NBAPoolApp() {
   function SavedEntriesRow({ entries, onOpen }: { entries: Entry[]; onOpen: (e: Entry) => void }) {
   if (!entries?.length) return null;
   return (
-    <div className="mt-10 mb-6"> {/* ⬅️ extra top/bottom margin */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold">Saved entries</h3>
-      </div>
+    <div className="mt-6 mb-6">
+      <h3 className="text-base font-semibold mb-3">Saved entries</h3>
 
-      <div className="flex gap-3 overflow-x-auto pb-2
-                      [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {entries.map((e) => (
+      <div
+        className="
+          -mx-6 px-6    /* edge-to-edge swipe on mobile */
+          flex gap-3 overflow-x-auto pb-2
+          snap-x snap-mandatory
+          [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+        "
+      >
+        {entries.map(e => (
           <SavedEntryTile key={e.id} entry={e} onClick={() => onOpen(e)} />
         ))}
       </div>
     </div>
   );
 }
-
 
 
 function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void }) {
