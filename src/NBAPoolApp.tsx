@@ -771,18 +771,20 @@ export default function NBAPoolApp() {
         NBA Confidence
       </h1>
 
-      {(user || taggedEmail) && (
+     
+      {/* Move Log Out button here so it's aligned */}
+      {user || taggedEmail ? (
         <button
           type="button"
           onClick={async () => {
             await supabase.auth.signOut();
             setTaggedEmail(null);
           }}
-          className="rounded-xl px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+          className="rounded-xl mb-4 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
         >
           Log Out
         </button>
-      )}
+      ) : null}
     </div>
 
     {/* Page tabs under the title (left) */}
