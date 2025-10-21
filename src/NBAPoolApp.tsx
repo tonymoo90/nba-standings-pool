@@ -1,12 +1,36 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { ReactSortable } from "react-sortablejs";
+import AuthBox from "./AuthBox";
 import { motion, AnimatePresence } from "framer-motion";
+import AuthModal from "./AuthModal";
+import NameModal from "./NameModal";
+import { createPortal } from "react-dom";
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
 type Conference = "east" | "west";
 type Page = "picks" | "pool" | "how";
+type Entry = {
+  id: string;
+  name: string;
+  east: Team[];
+  west: Team[];
+  submittedAt: string;
+};
+
+// Map DB row (snake_case) -> UI Entry (camelCase)
+type DbEntry = { id: string; name: string; east: Team[]; west: Team[]; submitted_at: string };
+const toEntry = (db: DbEntry): Entry => ({
+  id: db.id,
+  name: db.name,
+  east: db.east,
+  west: db.west,
+  submittedAt: db.submitted_at,
+});
+
+// state
 
 // ---------- Utils ----------
 const getLogo = (id: string) =>
@@ -85,12 +109,64 @@ const WEST_TEAMS: Team[] = [
   { id: "UTAH", name: "Utah Jazz" },
 ];
 
+// --- Ranking helpers (15 is max weight for the #1 team) ---
+const RANK_MAX = 15;                      // list length
+const weightForIndex = (i: number) => RANK_MAX - i; // 0→15, 14→1
+
+// Convert a list order to a weight map: { ATL: 15, BOS: 14, ... }
+type WeightMap = Record<string, number>;
+const listToWeights = (list: Team[]): WeightMap =>
+  Object.fromEntries(list.map((t, i) => [t.id, weightForIndex(i)]));
+
+// Team wins lookup you'll get from an API/db later
+type TeamWins = Record<string, number>;   // e.g. { BOS: 64, ATL: 41, ... }
+
+// Compute a user's score (east + west) using wins × rank-weight
+const scoreEntry = (east: Team[], west: Team[], wins: TeamWins) => {
+  const wEast = listToWeights(east);
+  const wWest = listToWeights(west);
+  let total = 0;
+  for (const [id, wt] of Object.entries({ ...wEast, ...wWest })) {
+    total += (wins[id] ?? 0) * wt;
+  }
+  return total;
+};
+
+
+function useAuth() {
+  const [user, setUser] = useState<import("@supabase/supabase-js").User | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user ?? null);
+    };
+    init();
+    const sub = supabase.auth.onAuthStateChange((_e, sess) => setUser(sess?.user ?? null));
+    return () => sub.data.subscription.unsubscribe();
+  }, []);
+
+  return user;
+}
+
+
 // ---------- Reusable row (with handle) ----------
-function TeamRow({ t, index }: { t: Team; index: number }) {
+function TeamRow({
+  t,
+  index,
+  locked = false,               // <-- default false
+}: {
+  t: Team;
+  index: number;
+  locked?: boolean;             // <-- optional
+}) {
+  const weight = weightForIndex(index); // 15..1
   return (
     <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 select-none shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold text-white/60 w-5 text-right">{index + 1}</span>
+        <span className="text-[11px] font-semibold text-white/75 w-6 text-right tabular-nums">
+          {weight}
+        </span>
         <img
           src={getLogo(t.id)}
           alt={t.name}
@@ -98,18 +174,22 @@ function TeamRow({ t, index }: { t: Team; index: number }) {
           draggable={false}
         />
         <span className="font-medium">{t.name}</span>
+        <span className="ml-2 text-xs text-white/50">×{weight}</span>
       </div>
 
-      {/* Drag handle */}
-      <div
-        className="drag-handle ml-2 px-2 py-1 rounded-md text-white/60 hover:text-white cursor-grab active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        ⋮⋮
-      </div>
+      {!locked && (
+        <div
+          className="drag-handle ml-2 px-2 py-1 rounded-md text-white/60 hover:text-white cursor-grab active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          ⋮⋮
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 // ---------- Column (SortableJS) ----------
 function ListColumn({
@@ -120,6 +200,7 @@ function ListColumn({
   setActiveTab,
   showMobileToggle,
   isMobile = false,
+  locked,                  // <-- NEW
 }: {
   title: string;
   list: Team[];
@@ -164,7 +245,7 @@ function ListColumn({
           )}
         </div>
         <span className="text-[10px] text-white/40">
-          {isMobile ? "drag using ⋮⋮" : "drag to reorder"}
+          {isMobile ? "" : "drag to reorder"}
         </span>
       </div>
 
@@ -175,7 +256,7 @@ function ListColumn({
         className="flex flex-col gap-2"
         handle={isMobile ? ".drag-handle" : undefined}
         ghostClass="sortable-ghost"
-        dragClass="sortable-drag"
+        dragClass="sortable-drag"            // <-- add this
       >
         {list.map((t, i) => (
           <TeamRow key={t.id} t={t} index={i} />
@@ -291,27 +372,12 @@ function RulesCard() {
         {/* Scoring example */}
         <div>
           <div className="text-xs text-white/60 uppercase tracking-wide mb-2"><h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase mt-3 mb-3">
-              3. Highest total wins. Scoring:
+              3. Highest total wins.
             </h3>
           </div>
-          <ul className="space-y-1 ml-3">
-            <li>
-              <span className="font-semibold text-white">Exact position</span> = +3 pts
-            </li>
-            <li>
-              <span className="font-semibold text-white">Off by one</span> (±1 seed) = +2 pt
-            </li>
-            <li>
-              <span className="font-semibold text-white">Off by two seeds</span> (±2 seed) = +1 pt
-            </li>
-            <li>
-              <span className="font-semibold text-white">Bonus</span>: guess all Play-In teams = +3 pts
-            </li>
-          </ul>
         </div>
 
 
-      
             </div>
     </div>
   );
@@ -374,19 +440,25 @@ function HowItWorks() {
   return (
     <div className="max-w-5xl mx-auto py-10">
       <div className="rounded-2xl border-white/10 p-6 md:p-8 shadow-inner">
-
-
+      
         <div className="grid md:grid-cols-2 gap-10">
           {/* DEMO */}
           <div>
             <h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase mb-3">
-                1. Rank Each Conference
+                1. Rank all 15 teams in each conference. 
               </h3>
-                  <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
-          Order teams using the{" "}
-                <span className="px-1 py-0.5 rounded ">⋮⋮</span>{" "}
-                handle to set the order for each conference. Save your entry before the season starts.
-                  </p>
+            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
+                Your #1 team gets 15× points per win, #2 gets 14×, … #15 gets 1×.
+            </p>
+            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
+              Total points = sum of (wins × your rank weight) across all teams.
+            </p>
+            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
+                Order teams using the{" "}
+              <span className="px-1 py-0.5 rounded ">⋮⋮</span>{" "}
+              handle to set the order for each conference. Save your entry before the season starts.
+            </p>
+
             <div className="flex items-center justify-between mb-3 ">
 
               {/* Always visible toggle */}
@@ -481,6 +553,133 @@ export default function NBAPoolApp() {
   const [activeTab, setActiveTab] = useState<Conference>("east");
   const [page, setPage] = useState<Page>("picks");
   const [entries, setEntries] = useState<any[]>([]);
+  const user = useAuth();
+  const [taggedEmail, setTaggedEmail] = useState<string | null>(null);
+  // top of file (near other state)
+  const SEASON = "2025-26";
+  const [showAuth, setShowAuth] = React.useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [lastSaved, setLastSaved] = useState<any | null>(null);
+
+  // TODO: Replace with real wins per team (e.g., from your standings API)
+  const wins: TeamWins = {}; // e.g. { BOS: 64, ATL: 41, ... }
+
+  // Points calculator
+  const pointsFor = (e: Entry) => scoreEntry(e.east, e.west, wins);
+
+
+  const [myEntryId, setMyEntryId] = useState<string | null>(null);
+
+  // standings
+  const [standingsCount, setStandingsCount] = useState<number>(0);
+  const [publicEntries, setPublicEntries] = useState<any[]>([]);
+
+  const isAuthRequired = page === "picks" && !user && !taggedEmail;
+
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+
+  const formatCount = (n: number) => (n > 99 ? "99+" : String(n));
+
+  // Load *all* public entries for the season (for Standings)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("entries")
+        .select("id,name,east,west,submitted_at")
+        .eq("season", SEASON)
+        .eq("is_public", true)
+        .order("submitted_at", { ascending: false });
+
+      if (error) {
+        console.error("[standings] load error", error);
+        return;
+      }
+      if (!cancelled) {
+        setPublicEntries((data ?? []).map(toEntry));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [SEASON]);
+ 
+  // Load the user's saved entries on sign-in / refresh
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("entries")
+        .select("id,name,east,west,submitted_at")
+        .eq("user_id", user.id)
+        .eq("season", SEASON)            // keep per-season, or remove this line for all seasons
+        .order("submitted_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+      if (!cancelled) {
+        setEntries((data ?? []).map(toEntry));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user]);
+
+  
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("entries-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "entries",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const e = toEntry(payload.new as DbEntry);
+          setEntries((prev) => [e, ...prev]); // newest first
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+
+    // OPEN the modal whenever auth is required
+  React.useEffect(() => {
+    if (isAuthRequired) {
+      console.log("[Auth] Opening modal (auth required)");
+      setShowAuth(true);
+    }
+  }, [isAuthRequired]);
+
+  // CLOSE the modal as soon as auth is satisfied
+  React.useEffect(() => {
+    if (user || taggedEmail) {
+      if (showAuth) console.log("[Auth] Closing modal (auth satisfied)");
+      setShowAuth(false);
+    }
+  }, [user, taggedEmail]); // eslint-disable-line
+
+
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setTaggedEmail(null);
+    alert("You’ve been logged out.");
+  }
 
   function autofillLastSeason() {
     // Use your last-season helpers if you want; keeping demo simple
@@ -495,38 +694,107 @@ export default function NBAPoolApp() {
   }
 
   function saveMyEntry(name = "You") {
-    const entry = {
-      id: String(Date.now()),
-      name,
-      east: [...east],
-      west: [...west],
-      submittedAt: new Date().toISOString(),
-    };
-    setEntries((prev) => [...prev, entry]);
-    alert(`Saved entry for ${name}!`);
+  const entry: Entry = {
+    id: String(Date.now()),
+    name,
+    east: [...east],
+    west: [...west],
+    submittedAt: new Date().toISOString(),
+  };
+  setEntries((prev) => [entry, ...prev]);   // ✅ use `entry`
+  alert(`Saved entry for ${name}!`);
+}
+
+  async function saveMyEntryToDB(name: string) {
+    try {
+      setSaving(true);
+
+      const payload = {
+        user_id: user.id,
+        email: user.email,
+        name,
+        east,
+        west,
+        season: SEASON,
+        is_public: true,
+        submitted_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("entries")
+        .insert(payload)
+        .select("*")
+        .single();
+
+      if (error) {
+        // unique-name collision, etc.
+        if ((error as any).code === "23505") {
+          alert("That name is already in use for this season. Please choose another.");
+          return;                    // ← do NOT close
+        }
+        throw error;
+      }
+
+      // success ➜ close the modal
+      setShowNameModal(false);
+
+      // update UI
+      setEntries((prev) => [toEntry(data as DbEntry), ...prev]);
+      setLastSaved(data);
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
   }
+
+  const myCount = entries?.length ?? 0; // assuming entries = current user’s entries
 
   return (
     <div className="min-h-[100vh] w-full bg-[#0b0f17] text-white">
+     {/* Mount the modal once, control with showAuth */}
+      <AuthModal
+        open={showAuth}
+        onClose={() => {
+          // Don’t close if auth is still required
+          if (!isAuthRequired) setShowAuth(false);
+        }}
+      />
+
+
       <div className="mx-auto max-w-6xl px-6 py-8 text-left">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
-              NBA Standings Predictions
-            </h1>
-            <p className="text-white/60 text-sm mb-4">
-              Predict the final regular-season order for each conference.
-            </p>
+              
+   
 
-            <div className="flex flex-wrap gap-2 mt-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-4 uppercase">
+              NBA Confidence
+            </h1>
+
+            <div className="flex flex-wrap gap-2 mt-2 mb-4">
               <button
                 onClick={() => setPage("picks")}
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  page === "picks" ? "bg-white/20" : "bg-white/10 hover:bg-white/20"
-                }`}
+                className={`relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
+                  ${page === "picks"
+                    ? "bg-white/20 text-white"
+                    : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"}`}
               >
                 My Picks
+                {entries.length > 0 && (
+                  <span
+                    className="ml-1 inline-flex h-5 items-center justify-center
+                               rounded-full text-[12px] font-semibold text-white/80
+                               leading-none"
+                  >
+                    ({entries.length})
+                  </span>
+                )}
               </button>
+
+
+
               <button
                 onClick={() => setPage("pool")}
                 className={`rounded-xl px-3 py-2 text-sm font-medium ${
@@ -543,8 +811,22 @@ export default function NBAPoolApp() {
               >
                 How it works
               </button>
+          {/* Replace the bottom auth buttons with just "Log Out" when authenticated */}
+          {user || taggedEmail ? (
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setTaggedEmail(null);
+              }}
+              className="rounded-xl px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+            >
+              Log Out
+            </button>
+          ) : null}
+
+              </div>
             </div>
-          </div>
 
           <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
              {page === "picks" && (
@@ -562,21 +844,79 @@ export default function NBAPoolApp() {
               A–Z
             </button>
             <button
-              onClick={() => saveMyEntry("You")}
+              onClick={() => {
+                // extra guard: if user isn’t authed (shouldn’t happen due to gate), bounce
+                if (isAuthRequired) { setShowAuth(true); return; }
+                setShowNameModal(true);
+              }}
               className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
             >
               Save My Entry
             </button>
+
                 </>
             )}
+
+              
+            </div>
+
           </div>
-        </div>
 
         {page === "picks" && (
           <>
-            {/* Mobile: single column with toggle */}
-            <div className="block md:hidden mb-6">
-              {activeTab === "east" ? (
+            <SavedEntriesRow
+              entries={entries}
+              onOpen={(e) => setSelectedEntry(e)}
+            />
+
+            {selectedEntry && (
+              <SavedEntryView
+                entry={selectedEntry}
+                onClose={() => setSelectedEntry(null)}
+              />
+            )}
+          </>
+        )}
+
+
+
+        {page === "picks" && (
+        <>
+          
+          {/* Only show picks interface if authenticated */}
+          {!isAuthRequired && (
+            <>
+              {/* Mobile: single column with toggle */}
+              <div className="block md:hidden mb-6">
+                {activeTab === "east" ? (
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                    <ListColumn
+                      title="Eastern Conference"
+                      list={east}
+                      setList={setEast}
+                      activeTab={activeTab}
+                      setActiveTab={setActiveTab}
+                      showMobileToggle={true}
+                      isMobile={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                    <ListColumn
+                      title="Western Conference"
+                      list={west}
+                      setList={setWest}
+                      activeTab={activeTab}
+                      setActiveTab={setActiveTab}
+                      showMobileToggle={true}
+                      isMobile={true}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop: two columns, no toggle */}
+              <div className="hidden md:grid grid-cols-2 gap-6">
                 <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
                   <ListColumn
                     title="Eastern Conference"
@@ -584,11 +924,10 @@ export default function NBAPoolApp() {
                     setList={setEast}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
-                    showMobileToggle={true}
-                    isMobile={true}
+                    showMobileToggle={false}
+                    isMobile={false}
                   />
                 </div>
-              ) : (
                 <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
                   <ListColumn
                     title="Western Conference"
@@ -596,83 +935,446 @@ export default function NBAPoolApp() {
                     setList={setWest}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
-                    showMobileToggle={true}
-                    isMobile={true}
+                    showMobileToggle={false}
+                    isMobile={false}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
 
-            {/* Desktop: two columns, no toggle */}
-            <div className="hidden md:grid grid-cols-2 gap-6">
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                <ListColumn
-                  title="Eastern Conference"
-                  list={east}
-                  setList={setEast}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                  showMobileToggle={false}
-                  isMobile={false}
-                />
-              </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                <ListColumn
-                  title="Western Conference"
-                  list={west}
-                  setList={setWest}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                  showMobileToggle={false}
-                  isMobile={false}
-                />
-              </div>
-            </div>
-          </>
-        )}
+
 
         {page === "pool" && (
-          <div className="rounded-2xl border-white/10 p-6">
-            <h2 className="text-xl font-semibold mb-4"></h2>
-            {entries.length === 0 ? (
-              <p className="text-white/60">In-season pool rankings will be here.</p>
-            ) : (
-              <div className="space-y-4">
-                {entries.map((entry) => (
-                  <div key={entry.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">{entry.name}</h3>
-                      <span className="text-xs text-white/60">
-                        {new Date(entry.submittedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-white/60 mb-1">East Top 5:</p>
-                        <ol className="text-white/80">
-                          {entry.east.slice(0, 5).map((t: Team, i: number) => (
-                            <li key={t.id}>{i + 1}. {t.name}</li>
-                          ))}
-                        </ol>
-                      </div>
-                      <div>
-                        <p className="text-white/60 mb-1">West Top 5:</p>
-                        <ol className="text-white/80">
-                          {entry.west.slice(0, 5).map((t: Team, i: number) => (
-                            <li key={t.id}>{i + 1}. {t.name}</li>
-                          ))}
-                        </ol>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Standings</h2>
+
+            {/* If you later have wins, pass them in as the second prop */}
+            <StandingsTable entries={entries} />
           </div>
         )}
 
+
         {page === "how" && <HowItWorks />}
+      
+        <NameModal
+          open={showNameModal}
+          saving={saving}
+          userId={user?.id}
+          season={SEASON}
+          onCancel={() => setShowNameModal(false)}   // ← this must exist
+          onSave={(name) => saveMyEntryToDB(name)}
+        />
+
+      </div>
+    </div>
+
+
+  );
+}
+ 
+    // Mini list (top-2) used inside tiles
+    // Tiny logo row: exactly one horizontal line (no wrap)
+  // Compact overlapping logo row with label prefix (E: / W:)
+  function LogoRow({
+  label,
+  teams,
+  limit = 8,
+  size = 22,
+  overlap = 9,
+}: {
+  label: string;
+  teams: Team[];
+  limit?: number;
+  size?: number;
+  overlap?: number;
+}) {
+  return (
+    // row padding keeps content off the card edges
+    <div className="flex items-center px-2">
+      <span className="mr-3 w-5 text-center font-semibold uppercase text-white/60">{label}</span>
+      <div className="flex items-center">
+        {teams.slice(0, limit).map((t, i) => (
+          <div
+            key={t.id}
+            className="relative"
+            style={{ marginLeft: i === 0 ? 0 : `-${overlap}px`, zIndex: teams.length - i }}
+          >
+            <img
+              src={getLogo(t.id)}
+              alt={t.name}
+              title={t.name}
+              width={size}
+              height={size}
+              className="rounded-full object-contain"
+              style={{
+                width: size,
+                height: size,
+                border: "1px solid rgba(255,255,255,0.28)", // subtle stroke
+                background: "rgba(255,255,255,0.08)",
+                boxShadow: "0 0 3px rgba(0,0,0,0.5)",
+              }}
+              draggable={false}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
+
+  function SavedEntryTile({ entry, onClick }: { entry: Entry; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group relative shrink-0 w-[300px] overflow-hidden rounded-2xl
+                 border border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]
+                 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      {/* strong internal padding and spacing */}
+      <div className="px-6 py-6 mt-1 mb-1 space-y-5 text-left">
+        <div className="flex items-center justify-between">
+          <div className="truncate text-base text-small text-white/90">{entry.name}</div>
+          <div className="ml-3 shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
+            0
+          </div>
+        </div>
+
+        {/* rows */}
+        <div className="space-y-3">
+          <LogoRow label="E" teams={entry.east} limit={8} size={22} overlap={9} />
+          <LogoRow label="W" teams={entry.west} limit={8} size={22} overlap={9} />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+  // The horizontal “Saved entries” row
+  function SavedEntriesRow({ entries, onOpen }: { entries: Entry[]; onOpen: (e: Entry) => void }) {
+  if (!entries?.length) return null;
+  return (
+    <div className="mt-10 mb-6"> {/* ⬅️ extra top/bottom margin */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold">Saved entries</h3>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto pb-2
+                      [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {entries.map((e) => (
+          <SavedEntryTile key={e.id} entry={e} onClick={() => onOpen(e)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void }) {
+  if (!entry) return null;
+
+  // Close on ESC
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Lock background scroll
+  React.useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const overlay = (
+    <div
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div
+        className="relative w-[min(96vw,1000px)]
+             h-[85vh] min-h-0  
+             rounded-2xl border border-white/10 bg-[#0b0f17] shadow-2xl
+             flex flex-col"
+      >
+        {/* Header (fixed) */}
+        <div className="flex-none sticky top-0 z-10 flex items-center justify-between px-5 py-4
+                        border-b border-white/10 bg-[#0b0f17]/95">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold">{entry.name}</h3>
+            <span className="text-xs text-white/60">
+              {new Date(entry.submittedAt).toLocaleString()}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg
+                       text-white/70 hover:text-white hover:bg-white/10
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body (scrolls) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <div className="text-xs tracking-wider text-white/60 uppercase mb-2">Eastern Conference</div>
+              <div className="flex flex-col gap-2">
+                {entry.east.map((t, i) => (
+                  <TeamRow key={t.id} t={t} index={i} locked />
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs tracking-wider text-white/60 uppercase mb-2">Western Conference</div>
+              <div className="flex flex-col gap-2">
+                {entry.west.map((t, i) => (
+                  <TeamRow key={t.id} t={t} index={i} locked />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="h-2" />
+        </div>
+      </div>
+
+    </div>
+  );
+
+  // Prefer the portal, but gracefully fall back to inline render
+  if (typeof document !== "undefined") {
+    const container = document.getElementById("portal-root");
+    if (container) return createPortal(overlay, container);
+  }
+  return overlay;
+}
+
+function EntryAvatar({ entry }: { entry: Entry }) {
+  const eastTop = entry.east?.[0];
+  const westTop = entry.west?.[0];
+  return (
+    <div className="relative h-6 w-10">
+      {westTop && (
+        <img
+          src={getLogo(westTop.id)}
+          alt={westTop.name}
+          className="absolute right-0 top-0 h-5 w-5 rounded-full border border-white/20 bg-white/10 object-contain"
+          draggable={false}
+        />
+      )}
+      {eastTop && (
+        <img
+          src={getLogo(eastTop.id)}
+          alt={eastTop.name}
+          className="absolute left-0 bottom-0 h-5 w-5 rounded-full border border-white/20 bg-white/10 object-contain"
+          draggable={false}
+        />
+      )}
+    </div>
+  );
+}
+
+
+
+
+function StandingsList({
+  rows,
+  title = "Standings",
+}: {
+  rows: Array<{ id: string; name: string; points: number }>;
+  title?: string;
+}) {
+  // sort by points desc, then name asc
+  const sorted = [...rows].sort((a, b) => (b.points - a.points) || a.name.localeCompare(b.name));
+
+  const rankBadge = (rank: number) => {
+    // subtle medal tones for 1/2/3, otherwise neutral
+    const styles =
+      rank === 1
+        ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/30"
+        : rank === 2
+        ? "bg-slate-400/20 text-slate-200 ring-1 ring-slate-300/30"
+        : rank === 3
+        ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-400/30"
+        : "bg-white/10 text-white/80 ring-1 ring-white/10";
+
+    return (
+      <div
+        className={`mr-3 inline-flex h-9 w-9 items-center justify-center rounded-full
+                    text-[13px] font-bold tabular-nums ${styles}`}
+      >
+        {rank}
+      </div>
+    );
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase">{title}</h3>
+        {/* mini legend if you want it later */}
+      </div>
+
+      <ul className="space-y-2">
+        {sorted.length === 0 && (
+          <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-white/60">
+            No public entries yet.
+          </li>
+        )}
+
+        {sorted.map((r, i) => (
+          <li
+            key={r.id}
+            className="flex items-center justify-between rounded-xl
+                       border border-white/10 bg-[#0f1521]/70 px-4 py-3
+                       shadow-sm hover:bg-white/[0.06] transition"
+          >
+            {/* Left: rank badge + name */}
+            <div className="flex min-w-0 items-center">
+              {rankBadge(i + 1)}
+              <div className="min-w-0">
+                <div className="truncate text-base font-medium">{r.name}</div>
+              </div>
+            </div>
+
+            {/* Right: points pill */}
+            <div className="ml-4 shrink-0">
+              <span
+                className="inline-flex items-center rounded-lg bg-white/10 px-3 py-1
+                           text-sm font-semibold tabular-nums"
+                title={`${r.points} pts`}
+              >
+                {r.points}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ---------- tiny overlapped logos (E & W top picks) ---------- */
+function EntryMiniLogos({ east, west }: { east?: Team; west?: Team }) {
+  return (
+    <div className="relative h-6 w-9">
+      {east && (
+        <img
+          src={getLogo(east.id)}
+          alt={east.name}
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full object-contain ring-1 ring-white/20 bg-white/10"
+          draggable={false}
+        />
+      )}
+      {west && (
+        <img
+          src={getLogo(west.id)}
+          alt={west.name}
+          className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full object-contain ring-1 ring-white/20 bg-white/10"
+          draggable={false}
+          style={{ marginLeft: '-8px' }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- one row ---------- */
+function StandingsRow({
+  rank,
+  entry,
+  points = 0,
+  onClick,
+}: {
+  rank: number;
+  entry: Entry;
+  points?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <li
+      onClick={onClick}
+      className="grid grid-cols-[64px_1fr_96px] items-center px-5 py-3 md:py-3.5
+                 hover:bg-white/[0.05] transition border-t border-white/8 first:border-t-0"
+      role={onClick ? 'button' : undefined}
+    >
+      {/* rank chip */}
+      <div>
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10
+                         text-[13px] font-semibold text-white/85">{rank}</span>
+      </div>
+
+      {/* entry */}
+      <div className="flex items-center gap-3 min-w-0">
+        <EntryMiniLogos east={entry.east?.[0]} west={entry.west?.[0]} />
+        <div className="min-w-0">
+          <div className="truncate font-medium text-white/90">{entry.name}</div>
+          <div className="mt-0.5 text-[12px] text-white/55 truncate">
+            E: {entry.east?.[0]?.name ?? '—'} • W: {entry.west?.[0]?.name ?? '—'}
+          </div>
+        </div>
+      </div>
+
+      {/* points pill */}
+      <div className="text-right">
+        <span className="inline-flex items-center justify-end rounded-md bg-white/10
+                         px-2.5 py-1 text-sm font-semibold text-white/90">{points}</span>
+      </div>
+    </li>
+  );
+}
+
+/* ---------- table wrapper ---------- */
+function StandingsTable({ entries }: { entries: Entry[] }) {
+  const ranked = [...entries]
+    .map((e, i) => ({ ...e, rank: i + 1, points: 0 })) // placeholder for now
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden w-full max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="grid grid-cols-[80px_1fr_100px] items-center px-5 py-3 
+                      text-xs uppercase tracking-wider text-white/60 bg-white/[0.05]">
+        <span>Rank</span>
+        <span>Entry</span>
+        <span className="text-right">Points</span>
+      </div>
+
+      {/* Rows */}
+      <ul className="divide-y divide-white/10">
+        {ranked.map((e) => (
+          <li
+            key={e.id}
+            className="grid grid-cols-[80px_1fr_100px] items-center px-5 py-3.5 
+                       hover:bg-white/[0.06] transition text-white/90"
+          >
+            <span className="font-semibold text-sm text-white/80">{e.rank}</span>
+            <span className="truncate text-[15px] font-medium">{e.name}</span>
+            <span className="text-right font-semibold text-white/90">{e.points}</span>
+          </li>
+        ))}
+
+        {!ranked.length && (
+          <li className="px-5 py-10 text-center text-white/60">No entries yet.</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+

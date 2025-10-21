@@ -21,6 +21,16 @@
   }
 }
 
+@layer components {
+  button.group {
+    @apply rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-all;
+  }
+
+  button.group:hover {
+    @apply shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)];
+  }
+}
+
 /* Hide the original element while dragging */
 .sortable-chosen:not(.sortable-ghost) {
   opacity: 0 !important;
