@@ -929,7 +929,7 @@ function resetVegasOdds() {
           className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
           <ArrowUpDown size={14} />
-          2025 Results
+          '25 Results
         </button>
         
         <button
