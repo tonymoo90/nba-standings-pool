@@ -927,14 +927,6 @@ function resetVegasOdds() {
         </button>
 
         <button
-          onClick={autofillLastSeason}
-          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
-        >
-          <ArrowUpDown size={12} />
-          2025 Results
-        </button>
-        
-        <button
           onClick={resetVegasOdds}
           className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
