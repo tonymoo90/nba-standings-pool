@@ -786,28 +786,45 @@ export default function NBAPoolApp() {
 
 
       <div className="mx-auto max-w-6xl px-6 py-8 text-left">
-  {/* Top bar: title left, logout right */}
-  <div className="mb-6">
-    <div className="flex items-center justify-between">
-      <h1 className="text-2xl sm:text-3xl mb-4 font-semibold tracking-tight uppercase">
-        NBA Confidence
-      </h1>
+        {/* Top bar: title left, logout right */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-6">
+            {/* LEFT: Logo + Title */}
+            <div className="flex items-center gap-3">
+              {/* Hard cap the logo size no matter what globals say */}
+              <div
+                className="shrink-0 overflow-hidden"
+                style={{ width: 15, height: 25 }}          // <= tweak 40 → 48 if you want bigger
+              >
+                <img
+                  src="/nbalogo.png"
+                  alt="NBA Confidence Logo"
+                  className="block w-full h-full object-contain"
+                />
+              </div>
 
-     
-      {/* Move Log Out button here so it's aligned */}
-      {user || taggedEmail ? (
-        <button
-          type="button"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            setTaggedEmail(null);
-          }}
-          className="rounded-xl mb-4 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
-        >
-          Log Out
-        </button>
-      ) : null}
-    </div>
+              {/* Title with explicit colors (inline style beats inherited text color) */}
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                <span className="uppercase" style={{ color: "#17408B" }}>NBA</span>{" "}
+                <span className="uppercase" style={{ color: "#D50032" }}>Confidence</span>
+              </h1>
+            </div>
+
+            {/* RIGHT: Log Out */}
+            {user || taggedEmail ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  setTaggedEmail(null);
+                }}
+                className="rounded-xl px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+              >
+                Log Out
+              </button>
+            ) : null}
+          </div>
+
 
     {/* Page tabs under the title (left) */}
     <div className="mt-3 flex flex-wrap gap-2">
