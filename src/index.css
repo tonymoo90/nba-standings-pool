@@ -3,6 +3,7 @@
 
 /* Reset any default or template button styles */
 @layer base {
+
   button {
     @apply appearance-none bg-transparent text-inherit border-0 outline-none;
   }
@@ -25,10 +26,15 @@
   button.group {
     @apply rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-all;
   }
+  .row { @apply transition-colors border-t border-white/10; }
+  .row:nth-child(odd)  { @apply bg-white/5; }   /* ≈ 5% white on dark */
+  .row:nth-child(even) { @apply bg-white/10; }  /* ≈ 10% white on dark */
+  .row:hover           { @apply bg-white/20; }  /* hover pop */
 
   button.group:hover {
     @apply shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)];
   }
+  .btn-base { @apply px-3 py-1.5 rounded-xl bg-white/[0.06] ring-1 ring-white/10; }
 }
 
 /* Hide the original element while dragging */

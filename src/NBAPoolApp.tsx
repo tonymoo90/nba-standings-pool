@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import AuthModal from "./AuthModal";
 import NameModal from "./NameModal";
 import { createPortal } from "react-dom";
+import { StandingsTable } from "./StandingsTable";
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
@@ -411,6 +412,9 @@ function HowItWorks() {
 
   const [demoConf, setDemoConf] = React.useState<"east" | "west">("east");
   const [demo, setDemo] = React.useState(eastList);
+  const TOTAL_RANKS = 15; // real rules
+  const weightForRank = (rank: number) => 16 - rank; // 1→15 … 15→1
+
 
   React.useEffect(() => {
     setDemo(demoConf === "east" ? eastList : westList);
@@ -444,20 +448,25 @@ function HowItWorks() {
         <div className="grid md:grid-cols-2 gap-10">
           {/* DEMO */}
           <div>
-            <h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase mb-3">
-                1. Rank all 15 teams in each conference. 
-              </h3>
-            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
-                Your #1 team gets 15× points per win, #2 gets 14×, … #15 gets 1×.
+            <h3 className="text-xl font-semibold tracking-wider text-white/70 uppercase mb-3">
+              Rank all 15 teams in each conference.
+            </h3>
+
+            <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
+              Scoring uses a <strong>15 → 1</strong> weight. Your <strong>#1 team gets 15×</strong> points per win, 
+              <strong>#2 gets 14×</strong>, … <strong>#15 gets 1×</strong>.
             </p>
-            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
-              Total points = sum of (wins × your rank weight) across all teams.
+
+            <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
+              Total points = <code className="opacity-80">Σ (team wins × weight)</code> across all teams in your entry.
+              Weight = <code className="opacity-80">16 − rank</code>.
             </p>
-            <p className="text-white/70 mb-6 text-base leading-relaxed p-6">
-                Order teams using the{" "}
-              <span className="px-1 py-0.5 rounded ">⋮⋮</span>{" "}
-              handle to set the order for each conference. Save your entry before the season starts.
+
+            <p className="text-sm text-white/70 mb-6 text-base leading-relaxed">
+              Drag the <span className="px-1 py-0.5 rounded bg-white/10">⋮⋮</span> handle to order teams for each conference, 
+              then save before the season starts.
             </p>
+
 
             <div className="flex items-center justify-between mb-3 ">
 
@@ -486,7 +495,7 @@ function HowItWorks() {
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white/5  border-white/10 p-5 md:p-6 mb-3">
+            <div className="rounded-2xl border-white/10 p-5 md:p-6 mb-3">
               <motion.ul
                 key={demoConf}
                 initial={{ opacity: 0 }}
@@ -498,24 +507,35 @@ function HowItWorks() {
                 <AnimatePresence initial={false}>
                   {demo.map((t, i) => (
                     <motion.li
-                      key={`${demoConf}-${t.id}`}
-                      layout
-                      transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-4 py-2.5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-white/60 w-5 text-right">
-                          {i + 1}
-                        </span>
-                        <img
-                          src={getLogo(t.id)}
-                          alt={t.name}
-                          className="w-5 h-5 object-contain rounded-full bg-white/20"
-                        />
-                        <span className="font-medium">{t.name}</span>
-                      </div>
-                      <span className="ml-2 text-white/60">⋮⋮</span>
-                    </motion.li>
+                        key={`${demoConf}-${t.id}`}
+                        layout
+                        transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                        className="flex items-center bg-white/5 justify-between rounded-xl border border-white/10 bg-white/[0.08]
+                                   px-5 py-4 md:px-6 md:py-5 mb-3 hover:bg-white/[0.12] transition-colors"
+                      >
+                        {/* LEFT: rank • weight • logo • name */}
+                        <div className="flex items-center gap-4 min-w-0">
+                          <span className="text-xs font-semibold text-white/60 w-5 text-right px-4">              
+                            ×{16 - (i + 1)}
+                          </span>
+
+                          {/* LOGO — hard-sized, cannot grow */}
+                            <img
+                              src={getLogo(t.id)}
+                              alt={t.name}
+                              className="w-full h-full object-contain"
+                              style={{ width: "10%", height: "10%" }} // beats any global img rules
+                            />
+                
+
+                          {/* TEAM NAME (single) */}
+                          <span className="font-medium text-base truncate">{t.name}</span>
+                        </div>
+
+                        {/* RIGHT: drag handle */}
+                        <span className="ml-2 text-white/60 text-lg leading-none">⋮⋮</span>
+                      </motion.li>
+
                   ))}
                 </AnimatePresence>
               </motion.ul>
@@ -524,13 +544,13 @@ function HowItWorks() {
         {/* --- Step 2: Save My Entry --- */}
         <div className="mt-10">
           <h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase mb-2">
-            2. Save Your Entry
+            2. Submit Your Entry
           </h3>
 
           <div className="rounded-2xl border-white/10 p-6 md:p-8 text-center">
             <p className="text-white/70 text-sm mb-5">
               Once you’re happy with your picks, tap{" "}
-              <span className="font-semibold text-white">Save My Entry</span> to lock them in.
+              <span className="font-semibold text-white">Submit Entry</span> to lock them in.
             </p>
 
             <SaveEntryDemo />
@@ -546,6 +566,8 @@ function HowItWorks() {
     </div>
   );
 }
+
+
 // ---------- App ----------
 export default function NBAPoolApp() {
   const [east, setEast] = useState<Team[]>(EAST_TEAMS);
@@ -853,7 +875,7 @@ export default function NBAPoolApp() {
           }}
           className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
         >
-          Save My Entry
+          Submit Entry
         </button>
       </div>
 
@@ -938,8 +960,6 @@ export default function NBAPoolApp() {
 
         {page === "pool" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Standings</h2>
-
             {/* If you later have wins, pass them in as the second prop */}
             <StandingsTable entries={entries} />
           </div>
@@ -1020,17 +1040,16 @@ export default function NBAPoolApp() {
     <button
       onClick={onClick}
       className="
-        group relative shrink-0
-        w-[240px] sm:w-[260px] md:w-[300px]
-        snap-start
-        overflow-hidden rounded-2xl
+        group relative flex-none shrink-0  /* <- do not let flexbox shrink this */
+        min-w-[260px] sm:min-w-[280px] md:min-w-[300px]  /* <- set your floor */
+        w-[260px] sm:w-[280px] md:w-[300px]              /* match width to min */
+        snap-start rounded-2xl overflow-hidden
         border border-white/10 bg-white/5
         hover:border-white/20 hover:bg-white/[0.08]
         transition focus:outline-none focus:ring-2 focus:ring-indigo-500
       "
     >
       <div className="px-5 py-4 md:px-6 md:py-5 space-y-3 text-left">
-        {/* top row */}
         <div className="flex items-center justify-between">
           <div className="truncate text-[15px] md:text-base font-semibold text-white/90">
             {entry.name}
@@ -1040,34 +1059,42 @@ export default function NBAPoolApp() {
           </div>
         </div>
 
-        {/* ✅ Show logos everywhere > 640px; hide only on phones */}
+        {/* Hide logo rows on phones; show on >=640px */}
         <div className="space-y-3 max-sm:hidden">
           <LogoRow label="E" teams={entry.east} limit={8} size={22} overlap={9} />
           <LogoRow label="W" teams={entry.west} limit={8} size={22} overlap={9} />
         </div>
 
-        {/* Optional ultra-compact line for phones */}
+
       </div>
     </button>
   );
 }
 
   // The horizontal “Saved entries” row
-  function SavedEntriesRow({ entries, onOpen }: { entries: Entry[]; onOpen: (e: Entry) => void }) {
+  function SavedEntriesRow({
+  entries,
+  onOpen,
+}: {
+  entries: Entry[];
+  onOpen: (e: Entry) => void;
+}) {
   if (!entries?.length) return null;
+
   return (
     <div className="mt-6 mb-6">
-      <h3 className="text-base font-semibold mb-3">Saved entries</h3>
+      <h3 className="text-base font-semibold mb-3">Entries</h3>
 
       <div
         className="
-          -mx-6 px-6    /* edge-to-edge swipe on mobile */
-          flex gap-3 overflow-x-auto pb-2
-          snap-x snap-mandatory
+          -mx-6 px-6                    /* full-bleed swipe on mobile */
+          overflow-x-auto pb-3          /* horizontal scroll */
+          flex flex-nowrap gap-3        /* keep cards in one row */
+          snap-x snap-mandatory         /* nice snap scrolling */
           [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
         "
       >
-        {entries.map(e => (
+        {entries.map((e) => (
           <SavedEntryTile key={e.id} entry={e} onClick={() => onOpen(e)} />
         ))}
       </div>
@@ -1227,156 +1254,78 @@ function StandingsList({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold tracking-wider text-white/70 uppercase">{title}</h3>
-        {/* mini legend if you want it later */}
-      </div>
-
-      <ul className="space-y-2">
-        {sorted.length === 0 && (
-          <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-white/60">
-            No public entries yet.
-          </li>
-        )}
-
-        {sorted.map((r, i) => (
-          <li
-            key={r.id}
-            className="flex items-center justify-between rounded-xl
-                       border border-white/10 bg-[#0f1521]/70 px-4 py-3
-                       shadow-sm hover:bg-white/[0.06] transition"
-          >
-            {/* Left: rank badge + name */}
-            <div className="flex min-w-0 items-center">
-              {rankBadge(i + 1)}
-              <div className="min-w-0">
-                <div className="truncate text-base font-medium">{r.name}</div>
-              </div>
-            </div>
-
-            {/* Right: points pill */}
-            <div className="ml-4 shrink-0">
-              <span
-                className="inline-flex items-center rounded-lg bg-white/10 px-3 py-1
-                           text-sm font-semibold tabular-nums"
-                title={`${r.points} pts`}
-              >
-                {r.points}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
+  <div className="w-full">
+    {/* Header section */}
+    <div className="mx-auto max-w-5xl mb-3 flex items-center justify-between px-1">
+      <h3 className="text-[20px] font-extrabold tracking-tight">CURRENT STANDINGS</h3>
+      <span className="text-[11px] uppercase tracking-wider text-white/50">
+        Last updated:{" "}
+        {updatedAt
+          ? new Date(updatedAt).toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "—"}
+      </span>
     </div>
-  );
-}
 
-/* ---------- tiny overlapped logos (E & W top picks) ---------- */
-function EntryMiniLogos({ east, west }: { east?: Team; west?: Team }) {
-  return (
-    <div className="relative h-6 w-9">
-      {east && (
-        <img
-          src={getLogo(east.id)}
-          alt={east.name}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full object-contain ring-1 ring-white/20 bg-white/10"
-          draggable={false}
-        />
-      )}
-      {west && (
-        <img
-          src={getLogo(west.id)}
-          alt={west.name}
-          className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full object-contain ring-1 ring-white/20 bg-white/10"
-          draggable={false}
-          style={{ marginLeft: '-8px' }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ---------- one row ---------- */
-function StandingsRow({
-  rank,
-  entry,
-  points = 0,
-  onClick,
-}: {
-  rank: number;
-  entry: Entry;
-  points?: number;
-  onClick?: () => void;
-}) {
-  return (
-    <li
-      onClick={onClick}
-      className="grid grid-cols-[64px_1fr_96px] items-center px-5 py-3 md:py-3.5
-                 hover:bg-white/[0.05] transition border-t border-white/8 first:border-t-0"
-      role={onClick ? 'button' : undefined}
-    >
-      {/* rank chip */}
-      <div>
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10
-                         text-[13px] font-semibold text-white/85">{rank}</span>
-      </div>
-
-      {/* entry */}
-      <div className="flex items-center gap-3 min-w-0">
-        <EntryMiniLogos east={entry.east?.[0]} west={entry.west?.[0]} />
-        <div className="min-w-0">
-          <div className="truncate font-medium text-white/90">{entry.name}</div>
-          <div className="mt-0.5 text-[12px] text-white/55 truncate">
-            E: {entry.east?.[0]?.name ?? '—'} • W: {entry.west?.[0]?.name ?? '—'}
-          </div>
+    {/* Table container */}
+    <div className="mx-auto max-w-5xl overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_6px_24px_rgba(0,0,0,0.35)]">
+      <div className="min-w-[680px]">
+        {/* Table header */}
+        <div className="flex items-center justify-between px-6 py-2.5 text-[11px] uppercase tracking-wider text-white/60 bg-white/[0.06] sticky top-0 z-10 after:content-[''] after:block after:h-px after:bg-white/10 after:absolute after:inset-x-0 after:bottom-0 relative">
+          <div className="w-[60px] shrink-0">Rank</div>
+          <div className="flex-1">Player</div>
+          <div className="w-[100px] shrink-0 text-right">Points</div>
         </div>
+
+        {/* Table body */}
+        <ul
+          className="
+            max-h-[520px] overflow-y-auto
+            [&>li]:transition-colors
+            [&>li+li]:border-t [&>li+li]:border-white/10
+            [&>li:nth-child(odd)]:bg-white/5
+            [&>li:nth-child(even)]:bg-white/10
+            [&>li:hover]:bg-white/20
+          "
+        >
+          {filtered.map((e) => (
+            <li key={e.id} className="flex items-center justify-between px-6 py-3">
+              {/* Rank */}
+              <div className="w-[60px] shrink-0 flex justify-start">
+                <span
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold
+                    ${
+                      e.rank === 1
+                        ? "bg-yellow-500/20 text-yellow-300"
+                        : e.rank === 2
+                        ? "bg-slate-300/15 text-slate-200"
+                        : e.rank === 3
+                        ? "bg-amber-700/20 text-amber-300"
+                        : "bg-white/10 text-white/80"
+                    }`}
+                >
+                  {e.rank}
+                </span>
+              </div>
+
+              {/* Player */}
+              <div className="flex-1 truncate font-semibold text-[15px]">{e.name}</div>
+
+              {/* Points */}
+              <div className="w-[100px] shrink-0 text-right font-extrabold tabular-nums text-white/90">
+                {e.points.toLocaleString()}
+              </div>
+            </li>
+          ))}
+
+          {!filtered.length && (
+            <li className="px-5 py-12 text-center text-white/60">No entries found.</li>
+          )}
+        </ul>
       </div>
-
-      {/* points pill */}
-      <div className="text-right">
-        <span className="inline-flex items-center justify-end rounded-md bg-white/10
-                         px-2.5 py-1 text-sm font-semibold text-white/90">{points}</span>
-      </div>
-    </li>
-  );
-}
-
-/* ---------- table wrapper ---------- */
-function StandingsTable({ entries }: { entries: Entry[] }) {
-  const ranked = [...entries]
-    .map((e, i) => ({ ...e, rank: i + 1, points: 0 })) // placeholder for now
-    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden w-full max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="grid grid-cols-[80px_1fr_100px] items-center px-5 py-3 
-                      text-xs uppercase tracking-wider text-white/60 bg-white/[0.05]">
-        <span>Rank</span>
-        <span>Entry</span>
-        <span className="text-right">Points</span>
-      </div>
-
-      {/* Rows */}
-      <ul className="divide-y divide-white/10">
-        {ranked.map((e) => (
-          <li
-            key={e.id}
-            className="grid grid-cols-[80px_1fr_100px] items-center px-5 py-3.5 
-                       hover:bg-white/[0.06] transition text-white/90"
-          >
-            <span className="font-semibold text-sm text-white/80">{e.rank}</span>
-            <span className="truncate text-[15px] font-medium">{e.name}</span>
-            <span className="text-right font-semibold text-white/90">{e.points}</span>
-          </li>
-        ))}
-
-        {!ranked.length && (
-          <li className="px-5 py-10 text-center text-white/60">No entries yet.</li>
-        )}
-      </ul>
     </div>
-  );
+  </div>
+);
 }
-
