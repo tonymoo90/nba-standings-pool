@@ -914,30 +914,32 @@ function resetVegasOdds() {
         onOpen={(e) => setSelectedEntry(e)}
       />
 
+    {!selectedEntry && (
+      <>
       {/* Toolbar: 2024–25 Results / A–Z / Vegas Odds / Save My Entry */}
       <div className="flex flex-wrap gap-2 mt-2 mb-6">
         <button
           onClick={resetAlphabetical}
           className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
-          <ArrowUpDown size={14} />
-          A–Z
+          <ArrowUpDown size={12} />
+          A-Z
         </button>
 
         <button
           onClick={autofillLastSeason}
           className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
-          <ArrowUpDown size={14} />
-          '25 Results
+          <ArrowUpDown size={12} />
+          2025 Results
         </button>
         
         <button
           onClick={resetVegasOdds}
           className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
-          <ArrowUpDown size={14} />
-          Vegas Odds
+          <ArrowUpDown size={12} />
+          2026 Odds
         </button>
         <button
           onClick={() => {
@@ -949,21 +951,6 @@ function resetVegasOdds() {
           Submit Entry
         </button>
       </div>
-
-      {selectedEntry && (
-        <SavedEntryView
-          entry={selectedEntry}
-          onClose={() => setSelectedEntry(null)}
-        />
-      )}
-    </>
-  )}
-
-
-
-
-        {page === "picks" && (
-        <>
           
           {/* Only show picks interface if authenticated */}
           {!isAuthRequired && (
@@ -1026,6 +1013,15 @@ function resetVegasOdds() {
           )}
         </>
       )}
+
+      {selectedEntry && (
+        <SavedEntryView
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+        />
+      )}
+    </>
+  )}
 
 
 
@@ -1177,6 +1173,8 @@ function SavedEntriesRow({
 
 function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void }) {
   if (!entry) return null;
+  
+  const [viewConf, setViewConf] = React.useState<"east" | "west">("east");
 
   // Close on ESC
   React.useEffect(() => {
@@ -1194,7 +1192,7 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[2147483647] flex items-center justify-center"
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -1203,39 +1201,93 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
 
       {/* Panel */}
       <div
-        className="relative w-[min(96vw,1000px)]
-             h-[85vh] min-h-0  
+        className="relative w-full max-w-5xl
+             h-[90vh] sm:h-[85vh] min-h-0  
              rounded-2xl border border-white/10 bg-[#0b0f17] shadow-2xl
              flex flex-col"
       >
         {/* Header (fixed) */}
-        <div className="flex-none sticky top-0 z-10 flex items-center justify-between px-5 py-4
-                        border-b border-white/10 bg-[#0b0f17]/95">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">{entry.name}</h3>
-            <span className="text-xs text-white/60">
-              {new Date(entry.submittedAt).toLocaleString()}
-            </span>
+        <div className="flex-none sticky top-0 z-10 border-b border-white/10 bg-[#0b0f17]/95">
+          <div className="flex items-center justify-between px-3 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <h3 className="text-sm sm:text-lg font-semibold truncate">{entry.name}</h3>
+              <span className="text-[10px] sm:text-xs text-white/60 hidden sm:inline">
+                {new Date(entry.submittedAt).toLocaleString()}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg
+                         text-white/70 hover:text-white hover:bg-white/10
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sm:w-[18px] sm:h-[18px]">
+                <path d="M6 6l12 12M18 6L6 18"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg
-                       text-white/70 hover:text-white hover:bg-white/10
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
+
+          {/* Mobile toggle - only visible on small screens */}
+          <div className="flex sm:hidden items-center justify-center gap-2 px-3 pb-3">
+            <span className="text-xs tracking-wider text-white/60 font-semibold uppercase">Conference</span>
+            <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
+              <button
+                onClick={() => setViewConf("east")}
+                className={`px-6 py-2 text-xs font-semibold rounded-full transition ${
+                  viewConf === "east" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
+                }`}
+              >
+                East
+              </button>
+              <button
+                onClick={() => setViewConf("west")}
+                className={`px-6 py-2 text-xs font-semibold rounded-full transition ${
+                  viewConf === "west" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
+                }`}
+              >
+                West
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Body (scrolls) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6">
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">
+          {/* Mobile: single column with toggle */}
+          <div className="block sm:hidden">
+            {viewConf === "east" ? (
+              <div>
+                <div className="text-[10px] tracking-wider text-white/60 uppercase mb-2">
+                  Eastern Conference
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {entry.east.map((t, i) => (
+                    <TeamRowCompact key={t.id} t={t} index={i} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-[10px] tracking-wider text-white/60 uppercase mb-2">
+                  Western Conference
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {entry.west.map((t, i) => (
+                    <TeamRowCompact key={t.id} t={t} index={i} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: 2 columns side by side */}
+          <div className="hidden sm:grid grid-cols-2 gap-6">
             <div>
-              <div className="text-xs tracking-wider text-white/60 uppercase mb-2">Eastern Conference</div>
+              <div className="text-xs tracking-wider text-white/60 uppercase mb-3">
+                Eastern Conference
+              </div>
               <div className="flex flex-col gap-2">
                 {entry.east.map((t, i) => (
                   <TeamRow key={t.id} t={t} index={i} locked />
@@ -1243,7 +1295,9 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
               </div>
             </div>
             <div>
-              <div className="text-xs tracking-wider text-white/60 uppercase mb-2">Western Conference</div>
+              <div className="text-xs tracking-wider text-white/60 uppercase mb-3">
+                Western Conference
+              </div>
               <div className="flex flex-col gap-2">
                 {entry.west.map((t, i) => (
                   <TeamRow key={t.id} t={t} index={i} locked />
@@ -1251,10 +1305,8 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
               </div>
             </div>
           </div>
-          <div className="h-2" />
         </div>
       </div>
-
     </div>
   );
 
@@ -1264,6 +1316,29 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
     if (container) return createPortal(overlay, container);
   }
   return overlay;
+}
+
+// Compact version of TeamRow for mobile modal view
+function TeamRowCompact({ t, index }: { t: Team; index: number }) {
+  const weight = weightForIndex(index);
+  return (
+    <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 select-none">
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        <span className="text-[10px] font-semibold text-white/75 w-4 text-right tabular-nums shrink-0">
+          {weight}
+        </span>
+        <img
+          src={getLogo(t.id)}
+          alt={t.name}
+          className="w-1 h-1 object-contain rounded-full bg-white/10 shrink-0"
+          style={{ width: "5%", height: "5%" }} // beats any global img rules
+          draggable={false}
+        />
+        <span className="font-medium text-xs truncate">{t.name}</span>
+        <span className="ml-1 text-[10px] text-white/50 shrink-0">×{weight}</span>
+      </div>
+    </div>
+  );
 }
 
 function EntryAvatar({ entry }: { entry: Entry }) {
