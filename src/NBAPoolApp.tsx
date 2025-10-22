@@ -261,7 +261,7 @@ function ListColumn({
               <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
                 <button
                   onClick={() => setActiveTab("east")}
-                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition ${
+                  className={`px-6 py-6 text-sm font-semibold rounded-full transition ${
                     activeTab === "east" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
                   }`}
                 >
@@ -269,7 +269,7 @@ function ListColumn({
                 </button>
                 <button
                   onClick={() => setActiveTab("west")}
-                  className={`px-6 py-3.5 text-sm font-semibold rounded-full transition ${
+                  className={`px-6 py-6 text-sm font-semibold rounded-full transition ${
                     activeTab === "west" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
                   }`}
                 >
@@ -1061,7 +1061,7 @@ function resetVegasOdds() {
 }) {
   return (
     // row padding keeps content off the card edges
-    <div className="flex items-center px-2">
+    <div className="px-2">
       <span className="mr-3 w-5 text-center font-semibold uppercase text-white/60">{label}</span>
       <div className="flex items-center">
         {teams.slice(0, limit).map((t, i) => (
@@ -1106,8 +1106,8 @@ function resetVegasOdds() {
         focus:outline-none focus:ring-2 focus:ring-indigo-500
       "
       style={{ 
-        width: '180px', 
-        minWidth: '180px', 
+        width: '160px', 
+        minWidth: '160px', 
         height: '80px' 
       }}
     >
@@ -1127,8 +1127,8 @@ function resetVegasOdds() {
         
         {/* Bottom section: Logo rows */}
         <div className="space-y-2">
-          <LogoRow label="E" teams={entry.east} limit={8} size={22} overlap={9} />
-          <LogoRow label="W" teams={entry.west} limit={8} size={22} overlap={9} />
+          <LogoRow teams={entry.east} limit={8} size={22} overlap={9} />
+          <LogoRow teams={entry.west} limit={8} size={22} overlap={9} />
         </div>
       </div>
     </button>
@@ -1201,7 +1201,7 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
         {/* Header (fixed) */}
         <div className="flex-none sticky top-0 z-10 border-b border-white/10 bg-[#0b0f17]/95">
           <div className="flex items-center justify-between px-3 py-3 sm:px-5 sm:py-4">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 mb-4">
               <h3 className="text-sm sm:text-lg font-semibold truncate">{entry.name}</h3>
               <span className="text-[10px] sm:text-xs text-white/60 hidden sm:inline">
                 {new Date(entry.submittedAt).toLocaleString()}
@@ -1222,7 +1222,7 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
           </div>
 
           {/* Mobile toggle - only visible on small screens */}
-          <div className="flex sm:hidden items-center justify-center gap-2 px-3 pb-3">
+          <div className="flex sm:hidden items-center  gap-2 px-3 pb-3 mb-4">
             <span className="text-xs tracking-wider text-white/60 font-semibold uppercase">Conference</span>
             <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
               <button
@@ -1246,14 +1246,12 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
         </div>
 
         {/* Body (scrolls) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6 mb-2">
           {/* Mobile: single column with toggle */}
           <div className="block sm:hidden">
             {viewConf === "east" ? (
               <div>
-                <div className="text-[10px] tracking-wider text-white/60 uppercase mb-2">
-                  Eastern Conference
-                </div>
+            
                 <div className="flex flex-col gap-1.5">
                   {entry.east.map((t, i) => (
                     <TeamRowCompact key={t.id} t={t} index={i} />
@@ -1262,9 +1260,6 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
               </div>
             ) : (
               <div>
-                <div className="text-[10px] tracking-wider text-white/60 uppercase mb-2">
-                  Western Conference
-                </div>
                 <div className="flex flex-col gap-1.5">
                   {entry.west.map((t, i) => (
                     <TeamRowCompact key={t.id} t={t} index={i} />
@@ -1314,11 +1309,9 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
 function TeamRowCompact({ t, index }: { t: Team; index: number }) {
   const weight = weightForIndex(index);
   return (
-    <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 select-none">
+    <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 select-none mb-3">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span className="text-[10px] font-semibold text-white/75 w-4 text-right tabular-nums shrink-0">
-          {weight}
-        </span>
+        
         <img
           src={getLogo(t.id)}
           alt={t.name}
@@ -1326,7 +1319,7 @@ function TeamRowCompact({ t, index }: { t: Team; index: number }) {
           style={{ width: "5%", height: "5%" }} // beats any global img rules
           draggable={false}
         />
-        <span className="font-medium text-xs truncate">{t.name}</span>
+        <span className="font-medium text-xs truncate px-6">{t.name}</span>
         <span className="ml-1 text-[10px] text-white/50 shrink-0">×{weight}</span>
       </div>
     </div>
