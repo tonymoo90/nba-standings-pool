@@ -1149,7 +1149,7 @@ function SavedEntriesRow({
       <h3 className="text-base font-semibold mb-3">Entries</h3>
       {/* Scrollable container with hidden scrollbar */}
       <div 
-        className="overflow-x-scroll overflow-y-hidden no-scrollbar pb-2 -mx-6 px-6"
+        className="overflow-x-scroll overflow-y-hidden no-scrollbar pb-2 -mx-6"
         style={{ overflowX: 'scroll' }}
       >
         {/* Flex container with gap */}
