@@ -98,7 +98,7 @@ function EmailOnlyForm() {
       return;
     }
     setState("sent");
-    setCooldown(20); // throttle resends
+    setCooldown(60); // throttle resends
   }, [email]);
 
   // submit handler
@@ -158,6 +158,7 @@ function EmailOnlyForm() {
     borderRadius: 12,
     padding: "10px 16px",
     background: "#4f46e5",
+    fontSize: 11,
     color: "#fff",
     fontWeight: 700,
     cursor: state === "sending" || !email ? "not-allowed" : "pointer",
@@ -168,6 +169,7 @@ function EmailOnlyForm() {
     border: "1px solid rgba(255,255,255,0.12)",
     background: "transparent",
     color: "#e5e7eb",
+    fontSize: 11,
     borderRadius: 12,
     padding: "10px 14px",
     cursor: cooldown > 0 ? "not-allowed" : "pointer",
@@ -191,14 +193,14 @@ function EmailOnlyForm() {
         <span style={statusStyle}>
           {state === "sending" && "Sending…"}
           {state === "sent" &&
-            `Magic link sent from "Supabase Auth." Check your email.`}
+            `Link sent from "Supabase Auth." Check your email.`}
           {state === "error" && err}
         </span>
 
         {/* action (right): primary "Send" OR throttled "Resend" */}
         {state !== "sent" ? (
           <button type="submit" style={primaryBtn} disabled={state === "sending" || !email}>
-            {state === "sending" ? "Sending…" : "Send magic link"}
+            {state === "sending" ? "Sending…" : "Send link"}
           </button>
         ) : (
           <button

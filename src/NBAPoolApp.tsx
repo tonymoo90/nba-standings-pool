@@ -8,6 +8,7 @@ import AuthModal from "./AuthModal";
 import NameModal from "./NameModal";
 import { createPortal } from "react-dom";
 import { StandingsTable } from "./StandingsTable";
+import { ArrowUpDown } from "lucide-react";
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
@@ -109,6 +110,43 @@ const WEST_TEAMS: Team[] = [
   { id: "SAS", name: "San Antonio Spurs" },
   { id: "UTAH", name: "Utah Jazz" },
 ];
+
+const VEGAS_EAST: Team[] = [
+  { id: "CLE", name: "Cleveland Cavaliers" },
+  { id: "NYK", name: "New York Knicks" },  
+  { id: "ORL", name: "Orlando Magic" },
+  { id: "PHI", name: "Philadelphia 76ers" },
+  { id: "ATL", name: "Atlanta Hawks" },
+  { id: "DET", name: "Detroit Pistons" },
+  { id: "MIL", name: "Milwaukee Bucks" },
+  { id: "BOS", name: "Boston Celtics" },
+  { id: "IND", name: "Indiana Pacers" },
+  { id: "MIA", name: "Miami Heat" },
+  { id: "TOR", name: "Toronto Raptors" },
+  { id: "CHI", name: "Chicago Bulls" },
+  { id: "CHA", name: "Charlotte Hornets" },
+  { id: "BKN", name: "Brooklyn Nets" },
+  { id: "WAS", name: "Washington Wizards" },
+];
+
+const VEGAS_WEST: Team[] = [
+  { id: "OKC", name: "Oklahoma City Thunder" },
+  { id: "DEN", name: "Denver Nuggets" },
+  { id: "HOU", name: "Houston Rockets" },  
+  { id: "MIN", name: "Minnesota Timberwolves" },
+  { id: "GSW", name: "Golden State Warriors" },
+  { id: "LAL", name: "Los Angeles Lakers" },
+  { id: "LAC", name: "Los Angeles Clippers" },
+  { id: "DAL", name: "Dallas Mavericks" },  
+  { id: "SAS", name: "San Antonio Spurs" },
+  { id: "MEM", name: "Memphis Grizzlies" },
+  { id: "NO", name: "New Orleans Pelicans" },
+  { id: "PHX", name: "Phoenix Suns" },
+  { id: "SAC", name: "Sacramento Kings" },
+  { id: "POR", name: "Portland Trail Blazers" },
+  { id: "UTAH", name: "Utah Jazz" },
+];
+
 
 // --- Ranking helpers (15 is max weight for the #1 team) ---
 const RANK_MAX = 15;                      // list length
@@ -703,6 +741,11 @@ export default function NBAPoolApp() {
     alert("You’ve been logged out.");
   }
 
+function resetVegasOdds() {
+  setEast([...VEGAS_EAST]);
+  setWest([...VEGAS_WEST]);
+}
+
   function autofillLastSeason() {
     // Use your last-season helpers if you want; keeping demo simple
     // setEast(LAST_SEASON_EAST); setWest(LAST_SEASON_WEST);
@@ -871,19 +914,30 @@ export default function NBAPoolApp() {
         onOpen={(e) => setSelectedEntry(e)}
       />
 
-      {/* Toolbar: 2024–25 Results / A–Z / Save My Entry */}
+      {/* Toolbar: 2024–25 Results / A–Z / Vegas Odds / Save My Entry */}
       <div className="flex flex-wrap gap-2 mt-2 mb-6">
         <button
-          onClick={autofillLastSeason}
-          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
-        >
-          2024–25 Results
-        </button>
-        <button
           onClick={resetAlphabetical}
-          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium"
+          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
         >
+          <ArrowUpDown size={14} />
           A–Z
+        </button>
+
+        <button
+          onClick={autofillLastSeason}
+          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
+        >
+          <ArrowUpDown size={14} />
+          2025 Results
+        </button>
+        
+        <button
+          onClick={resetVegasOdds}
+          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
+        >
+          <ArrowUpDown size={14} />
+          Vegas Odds
         </button>
         <button
           onClick={() => {
@@ -1051,45 +1105,49 @@ export default function NBAPoolApp() {
   );
 }
 
-
   function SavedEntryTile({ entry, onClick }: { entry: Entry; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className="
-        group relative flex-none shrink-0  /* <- do not let flexbox shrink this */
-        min-w-[260px] sm:min-w-[280px] md:min-w-[300px]  /* <- set your floor */
-        w-[260px] sm:w-[280px] md:w-[300px]              /* match width to min */
-        snap-start rounded-2xl overflow-hidden
-        border border-white/10 bg-white/5
-        hover:border-white/20 hover:bg-white/[0.08]
-        transition focus:outline-none focus:ring-2 focus:ring-indigo-500
+        group relative block shrink-0
+        rounded-2xl overflow-hidden
+        border border-white/10
+        bg-white/5 hover:border-white/20 hover:bg-white/[0.08]
+        transition
+        focus:outline-none focus:ring-2 focus:ring-indigo-500
       "
+      style={{ 
+        width: '180px', 
+        minWidth: '180px', 
+        height: '80px' 
+      }}
     >
-      <div className="px-5 py-4 md:px-6 md:py-5 space-y-3 text-left">
-        <div className="flex items-center justify-between">
-          <div className="truncate text-[15px] md:text-base font-semibold text-white/90">
+      <div className="px-4 py-3 h-full flex flex-col justify-between">
+        {/* Top section: name and score */}
+        <div className="flex items-center gap-2 min-w-0 w-full">
+          <span 
+            className="truncate font-semibold text-white/90 min-w-0 flex-1 block"
+            style={{ fontSize: '13px', lineHeight: '1.2' }}
+          >
             {entry.name}
-          </div>
-          <div className="ml-3 shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
+          </span>
+          <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
             0
-          </div>
+          </span>
         </div>
-
-        {/* Hide logo rows on phones; show on >=640px */}
-        <div className="space-y-3 max-sm:hidden">
+        
+        {/* Bottom section: Logo rows */}
+        <div className="space-y-2">
           <LogoRow label="E" teams={entry.east} limit={8} size={22} overlap={9} />
           <LogoRow label="W" teams={entry.west} limit={8} size={22} overlap={9} />
         </div>
-
-
       </div>
     </button>
   );
 }
 
-  // The horizontal “Saved entries” row
-  function SavedEntriesRow({
+function SavedEntriesRow({
   entries,
   onOpen,
 }: {
@@ -1099,26 +1157,23 @@ export default function NBAPoolApp() {
   if (!entries?.length) return null;
 
   return (
-    <div className="mt-6 mb-6">
+    <div className="mb-6">
       <h3 className="text-base font-semibold mb-3">Entries</h3>
-
-      <div
-        className="
-          -mx-6 px-6                    /* full-bleed swipe on mobile */
-          overflow-x-auto pb-3          /* horizontal scroll */
-          flex flex-nowrap gap-3        /* keep cards in one row */
-          snap-x snap-mandatory         /* nice snap scrolling */
-          [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
-        "
+      {/* Scrollable container with hidden scrollbar */}
+      <div 
+        className="overflow-x-scroll overflow-y-hidden no-scrollbar pb-2 -mx-6 px-6"
+        style={{ overflowX: 'scroll' }}
       >
-        {entries.map((e) => (
-          <SavedEntryTile key={e.id} entry={e} onClick={() => onOpen(e)} />
-        ))}
+        {/* Flex container with gap */}
+        <div className="flex gap-3">
+          {entries.map((e) => (
+            <SavedEntryTile key={e.id} entry={e} onClick={() => onOpen(e)} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-
 
 function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void }) {
   if (!entry) return null;

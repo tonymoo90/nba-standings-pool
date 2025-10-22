@@ -3,6 +3,7 @@
 
 /* Reset any default or template button styles */
 @layer base {
+  html, body { overflow-x: hidden; }
 
   button {
     @apply appearance-none bg-transparent text-inherit border-0 outline-none;
@@ -20,6 +21,8 @@
   .sortable-drag   { 
     @apply cursor-grabbing opacity-100 shadow-2xl scale-105;
   }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 }
 
 @layer components {
