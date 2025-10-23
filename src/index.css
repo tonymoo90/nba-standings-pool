@@ -6,7 +6,7 @@
   html, body { overflow-x: hidden; }
 
   button {
-    @apply appearance-none bg-transparent text-inherit border-0 outline-none;
+    @apply appearance-none text-inherit border-0 outline-none;
   }
 }
 
@@ -25,25 +25,52 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
 }
 
+/* === Custom components === */
 @layer components {
-  button.group {
-    @apply rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-all;
+  /* Emerald gradient-outline button (no fill) */
+  .btn-emerald-outline {
+    @apply relative inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-emerald-300;
   }
-  .row { @apply transition-colors border-t border-white/10; }
-  .row:nth-child(odd)  { @apply bg-white/5; }   /* ≈ 5% white on dark */
-  .row:nth-child(even) { @apply bg-white/10; }  /* ≈ 10% white on dark */
-  .row:hover           { @apply bg-white/20; }  /* hover pop */
+  .btn-emerald-outline::before {
+    content: "";
+    position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(90deg, #34d399, #10b981);
+    -webkit-mask: 
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .btn-emerald-outline:hover { color: #a7f3d0; }
+  .btn-emerald-outline:active { transform: translateY(0.5px); }
 
-  button.group:hover {
-    @apply shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)];
+  /* Toggle pill (segment control) using your NBA blue #2563EB */
+  .toggle-pill {
+    @apply inline-flex rounded-full bg-white/10 p-0.5;
   }
-  .btn-base { @apply px-3 py-1.5 rounded-xl bg-white/[0.06] ring-1 ring-white/10; }
+  .toggle-segment {
+    @apply px-6 py-2 text-xs font-semibold rounded-full transition;
+  }
+  .toggle-segment--active {
+    background-color: #2563EB; /* NBA-ish blue */
+    color: white;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+  }
+
+  /* Taller, rounded search input that works everywhere */
+  .search-input {
+    @apply w-[220px] px-4 text-sm text-white placeholder:text-white/40 
+           outline-none bg-white/10 rounded-full shadow-sm;
+    height: 44px;              /* force height */
+    line-height: 44px;         /* vertical centering for WebKit */
+  }
+  .search-input:focus { box-shadow: 0 0 0 2px color-mix(in oklab, white 0%, #2563EB 50%); }
 }
 
-/* Hide the original element while dragging */
-.sortable-chosen:not(.sortable-ghost) {
-  opacity: 0 !important;
-}
+
+  /* Hide the original element while dragging */
+  .sortable-chosen:not(.sortable-ghost) {
+    opacity: 0 !important;
+  }
 
 /* Optional global defaults */
 :root {

@@ -204,7 +204,7 @@ function TeamRow({
     <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 select-none shadow-sm">
       <div className="flex items-center gap-3">
         <span className="text-[11px] font-semibold text-white/75 w-6 text-right tabular-nums">
-          {weight}
+          {weight}x
         </span>
         <img
           src={getLogo(t.id)}
@@ -213,7 +213,6 @@ function TeamRow({
           draggable={false}
         />
         <span className="font-medium">{t.name}</span>
-        <span className="ml-2 text-xs text-white/50">×{weight}</span>
       </div>
 
       {!locked && (
@@ -553,7 +552,7 @@ function HowItWorks() {
                         {/* LEFT: rank • weight • logo • name */}
                         <div className="flex items-center gap-4 min-w-0">
                           <span className="text-xs font-semibold text-white/60 w-5 text-right px-4">              
-                            ×{16 - (i + 1)}
+                            {16 - (i + 1)}x
                           </span>
 
                           {/* LOGO — hard-sized, cannot grow */}
@@ -1128,7 +1127,7 @@ function resetVegasOdds() {
     >
       <div className="px-4 py-3 h-full flex flex-col justify-between">
         {/* Top section: name and score */}
-        <div className="flex items-center gap-2 min-w-0 w-full">
+        <div className="flex items-center gap-2 min-w-0 w-full mb-3">
           <span 
             className="truncate font-semibold text-white/90 min-w-0 flex-1 block"
             style={{ fontSize: '13px', lineHeight: '1.2' }}
@@ -1238,7 +1237,7 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
           {/* Mobile toggle - only visible on small screens */}
           <div className="flex sm:hidden items-center  gap-2 px-3 pb-3 mb-4">
             <span className="text-xs tracking-wider text-white/60 font-semibold uppercase">Conference</span>
-            <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
+            <div className="toggle-pill">
               <button
                 onClick={() => setViewConf("east")}
                 className={`px-6 py-2 text-xs font-semibold rounded-full transition ${
@@ -1322,10 +1321,11 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
 // Compact version of TeamRow for mobile modal view
 function TeamRowCompact({ t, index }: { t: Team; index: number }) {
   const weight = weightForIndex(index);
-  return (
+  return (        
     <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 select-none mb-3">
+  
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        
+        <span className="ml-1 text-[10px] text-white/50 shrink-0">×{weight}</span>      
         <img
           src={getLogo(t.id)}
           alt={t.name}
@@ -1333,8 +1333,9 @@ function TeamRowCompact({ t, index }: { t: Team; index: number }) {
           style={{ width: "5%", height: "5%" }} // beats any global img rules
           draggable={false}
         />
+
         <span className="font-medium text-xs truncate px-6">{t.name}</span>
-        <span className="ml-1 text-[10px] text-white/50 shrink-0">×{weight}</span>
+
       </div>
     </div>
   );
@@ -1363,115 +1364,4 @@ function EntryAvatar({ entry }: { entry: Entry }) {
       )}
     </div>
   );
-}
-
-
-
-
-function StandingsList({
-  rows,
-  title = "Standings",
-}: {
-  rows: Array<{ id: string; name: string; points: number }>;
-  title?: string;
-}) {
-  // sort by points desc, then name asc
-  const sorted = [...rows].sort((a, b) => (b.points - a.points) || a.name.localeCompare(b.name));
-
-  const rankBadge = (rank: number) => {
-    // subtle medal tones for 1/2/3, otherwise neutral
-    const styles =
-      rank === 1
-        ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/30"
-        : rank === 2
-        ? "bg-slate-400/20 text-slate-200 ring-1 ring-slate-300/30"
-        : rank === 3
-        ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-400/30"
-        : "bg-white/10 text-white/80 ring-1 ring-white/10";
-
-    return (
-      <div
-        className={`mr-3 inline-flex h-9 w-9 items-center justify-center rounded-full
-                    text-[13px] font-bold tabular-nums ${styles}`}
-      >
-        {rank}
-      </div>
-    );
-  };
-
-  return (
-  <div className="w-full">
-    {/* Header section */}
-    <div className="mx-auto max-w-5xl mb-3 flex items-center justify-between px-1">
-      <h3 className="text-[20px] font-extrabold tracking-tight">CURRENT STANDINGS</h3>
-      <span className="text-[11px] uppercase tracking-wider text-white/50">
-        Last updated:{" "}
-        {updatedAt
-          ? new Date(updatedAt).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : "—"}
-      </span>
-    </div>
-
-    {/* Table container */}
-    <div className="mx-auto max-w-5xl overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_6px_24px_rgba(0,0,0,0.35)]">
-      <div className="min-w-[680px]">
-        {/* Table header */}
-        <div className="flex items-center justify-between px-6 py-2.5 text-[11px] uppercase tracking-wider text-white/60 bg-white/[0.06] sticky top-0 z-10 after:content-[''] after:block after:h-px after:bg-white/10 after:absolute after:inset-x-0 after:bottom-0 relative">
-          <div className="w-[60px] shrink-0">Rank</div>
-          <div className="flex-1">Player</div>
-          <div className="w-[100px] shrink-0 text-right">Points</div>
-        </div>
-
-        {/* Table body */}
-        <ul
-          className="
-            max-h-[520px] overflow-y-auto
-            [&>li]:transition-colors
-            [&>li+li]:border-t [&>li+li]:border-white/10
-            [&>li:nth-child(odd)]:bg-white/5
-            [&>li:nth-child(even)]:bg-white/10
-            [&>li:hover]:bg-white/20
-          "
-        >
-          {filtered.map((e) => (
-            <li key={e.id} className="flex items-center justify-between px-6 py-3">
-              {/* Rank */}
-              <div className="w-[60px] shrink-0 flex justify-start">
-                <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold
-                    ${
-                      e.rank === 1
-                        ? "bg-yellow-500/20 text-yellow-300"
-                        : e.rank === 2
-                        ? "bg-slate-300/15 text-slate-200"
-                        : e.rank === 3
-                        ? "bg-amber-700/20 text-amber-300"
-                        : "bg-white/10 text-white/80"
-                    }`}
-                >
-                  {e.rank}
-                </span>
-              </div>
-
-              {/* Player */}
-              <div className="flex-1 truncate font-semibold text-[15px]">{e.name}</div>
-
-              {/* Points */}
-              <div className="w-[100px] shrink-0 text-right font-extrabold tabular-nums text-white/90">
-                {e.points.toLocaleString()}
-              </div>
-            </li>
-          ))}
-
-          {!filtered.length && (
-            <li className="px-5 py-12 text-center text-white/60">No entries found.</li>
-          )}
-        </ul>
-      </div>
-    </div>
-  </div>
-);
 }

@@ -60,8 +60,8 @@ export function StandingsTable({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search player…"
-          className="ml-4 w-[180px] rounded-lg bg-white/10 px-3 py-1.5 text-sm placeholder:text-white/40 outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Search..."
+          className="search-input"
         />
       </div>
 

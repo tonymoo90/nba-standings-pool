@@ -157,7 +157,7 @@ function EmailOnlyForm() {
     border: "none",
     borderRadius: 12,
     padding: "10px 16px",
-    background: "#4f46e5",
+    background: "#2563EB",
     fontSize: 11,
     color: "#fff",
     fontWeight: 700,
