@@ -487,22 +487,21 @@ function HowItWorks() {
           {/* DEMO */}
           <div>
             <h3 className="text-xl font-semibold tracking-wider text-white/70 uppercase mb-3">
-              Rank all 15 teams in each conference.
+              Rank all 30 teams across both conferences.
             </h3>
 
             <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
-              Scoring uses a <strong>15 → 1</strong> weight. Your <strong>#1 team gets 15×</strong> points per win, 
-              <strong>#2 gets 14×</strong>, … <strong>#15 gets 1×</strong>.
+              Drag the <span className="px-1 py-0.5 rounded bg-white/10">⋮⋮</span> handle to order teams for each conference, 
+              then save before the season starts.
+            </p>
+
+            <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
+              Scoring uses a <strong>15 → 1</strong> weight. Your <strong>#15 teams gets 15×</strong> points per win,  
+              <strong>#14 gets 14×</strong>, … <strong>#1 gets 1×</strong>.
             </p>
 
             <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
               Total points = <code className="opacity-80">Σ (team wins × weight)</code> across all teams in your entry.
-              Weight = <code className="opacity-80">16 − rank</code>.
-            </p>
-
-            <p className="text-sm text-white/70 mb-6 text-base leading-relaxed">
-              Drag the <span className="px-1 py-0.5 rounded bg-white/10">⋮⋮</span> handle to order teams for each conference, 
-              then save before the season starts.
             </p>
 
 
@@ -608,6 +607,7 @@ function HowItWorks() {
 
 // ---------- App ----------
 export default function NBAPoolApp() {
+  // --- state first ---
   const [east, setEast] = useState<Team[]>(EAST_TEAMS);
   const [west, setWest] = useState<Team[]>(WEST_TEAMS);
   const [activeTab, setActiveTab] = useState<Conference>("east");
@@ -615,26 +615,37 @@ export default function NBAPoolApp() {
   const [entries, setEntries] = useState<any[]>([]);
   const user = useAuth();
   const [taggedEmail, setTaggedEmail] = useState<string | null>(null);
-  // top of file (near other state)
   const SEASON = "2025-26";
   const [showAuth, setShowAuth] = React.useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [saving, setSaving] = useState(false);
-
   const [lastSaved, setLastSaved] = useState<any | null>(null);
 
-  // TODO: Replace with real wins per team (e.g., from your standings API)
-  const wins: TeamWins = {}; // e.g. { BOS: 64, ATL: 41, ... }
+  // standings/pool state
+  const [standingsCount, setStandingsCount] = useState<number>(0);
+  const [publicEntries, setPublicEntries] = useState<any[]>([]);   // ← MOVE THIS UP (before useMemo)
 
-  // Points calculator
+  // wins (replace with real data later)
+  const wins: TeamWins = {};
+
+  // helper: compute points for one entry
   const pointsFor = (e: Entry) => scoreEntry(e.east, e.west, wins);
 
+  // compute scored “pool” entries for the Standings
+  const scoredPublic = React.useMemo(
+    () =>
+      publicEntries.map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        userId: e.user_id,                 // make sure you SELECT this below
+        points: pointsFor(e),
+        submittedAt: e.submittedAt,
+      })),
+    [publicEntries, wins]
+  );
 
   const [myEntryId, setMyEntryId] = useState<string | null>(null);
 
-  // standings
-  const [standingsCount, setStandingsCount] = useState<number>(0);
-  const [publicEntries, setPublicEntries] = useState<any[]>([]);
 
   const isAuthRequired = page === "picks" && !user && !taggedEmail;
 
@@ -848,7 +859,7 @@ function resetVegasOdds() {
 
               {/* Title with explicit colors (inline style beats inherited text color) */}
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                <span className="uppercase" style={{ color: "#17408B" }}>NBA</span>{" "}
+                <span className="uppercase" style={{ color: "#2563EB" }}>NBA</span>{" "}
                 <span className="uppercase" style={{ color: "#D50032" }}>Confidence</span>
               </h1>
             </div>
@@ -938,9 +949,9 @@ function resetVegasOdds() {
             if (isAuthRequired) { setShowAuth(true); return; }
             setShowNameModal(true);
           }}
-          className="rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
+          className="rounded-xl px-3 py-2 bg-emerald-600 border-emerald-200 hover:bg-emerald-500 text-sm font-semibold"
         >
-          Submit Entry
+          Submit Picks
         </button>
       </div>
           
@@ -1020,7 +1031,11 @@ function resetVegasOdds() {
         {page === "pool" && (
           <div className="space-y-4">
             {/* If you later have wins, pass them in as the second prop */}
-            <StandingsTable entries={entries} />
+            <StandingsTable
+              entries={scoredPublic}
+              currentUserId={user?.id || undefined}
+              updatedAt={lastSaved?.submitted_at}
+            />
           </div>
         )}
 
@@ -1146,7 +1161,6 @@ function SavedEntriesRow({
 
   return (
     <div className="mb-6">
-      <h3 className="text-base font-semibold mb-3">Entries</h3>
       {/* Scrollable container with hidden scrollbar */}
       <div 
         className="overflow-x-scroll overflow-y-hidden no-scrollbar pb-2 -mx-6"
