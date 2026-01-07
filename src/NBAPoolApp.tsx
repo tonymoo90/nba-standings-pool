@@ -829,8 +829,8 @@ export default function NBAPoolApp() {
                 <img
                   src={nflLogoUrl}
                   alt="NFL"
-                  className="block w-7 h-7 sm:w-8 sm:h-8 object-contain opacity-90"
                   draggable={false}
+                  style={{ width: 28, height: 28, objectFit: "contain", opacity: 0.9, display: "block" }}
                 />
               </span>
 
