@@ -822,16 +822,20 @@ export default function NBAPoolApp() {
           <div className="flex items-center justify-between mb-6">
             {/* LEFT: Logo + Title */}
             <div className="flex items-center gap-2.5">
-              <img
-                src="/National_Football_League_logo.svg"
-                alt="NFL"
-                className="w-7 h-7 sm:w-8 sm:h-8 opacity-90 object-contain"
-              />
+              <div className="shrink-0" aria-hidden>
+                <img
+                  src="/National_Football_League_logo.svg"
+                  alt="NFL"
+                  className="block !w-7 !h-7 sm:!w-8 sm:!h-8 opacity-90 object-contain"
+                  draggable={false}
+                />
+              </div>
 
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
                 <span className="uppercase text-red-600">Confidence</span>
               </h1>
             </div>
+
 
             {/* RIGHT: Log Out */}
             {user || taggedEmail ? (
