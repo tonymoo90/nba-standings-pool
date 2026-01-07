@@ -828,8 +828,8 @@ export default function NBAPoolApp() {
                 style={{ width: 15, height: 25 }}          // <= tweak 40 → 48 if you want bigger
               >
                 <img
-                  src="/nbalogo.png"
-                  alt="NBA Confidence Logo"
+                  src="/nfllogo.png"
+                  alt="NFL Confidence Logo"
                   className="block w-full h-full object-contain"
                 />
               </div>
