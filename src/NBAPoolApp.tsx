@@ -528,6 +528,7 @@ export default function NBAPoolApp() {
       const { data: lb, error } = await supabase
         .from("leaderboard_weighted")
         .select("*")
+        .eq("season", SEASON)                // ✅ add this
         .order("points", { ascending: false });
 
       if (error) {
