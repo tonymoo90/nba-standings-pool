@@ -10,6 +10,8 @@ import { createPortal } from "react-dom";
 import { StandingsTable } from "./StandingsTable";
 import { ArrowUpDown } from "lucide-react";
 import EntryBreakdownWeighted from "./EntryBreakdownWeighted";
+import { ReactComponent as NFLLogo } from "/National_Football_League_logo.svg";
+
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
@@ -822,15 +824,7 @@ export default function NBAPoolApp() {
           <div className="flex items-center justify-between mb-6">
             {/* LEFT: Logo + Title */}
             <div className="flex items-center gap-2.5">
-              <div className="shrink-0" aria-hidden>
-                <img
-                  src="/National_Football_League_logo.svg"
-                  alt="NFL"
-                  className="block !w-7 !h-7 sm:!w-8 sm:!h-8 opacity-90 object-contain"
-                  draggable={false}
-                />
-              </div>
-
+              <NFLLogo className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 opacity-90" aria-hidden />
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
                 <span className="uppercase text-red-600">Confidence</span>
               </h1>
