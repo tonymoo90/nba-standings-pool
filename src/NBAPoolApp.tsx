@@ -50,120 +50,34 @@ const getLogo = (id: string) =>
   `https://a.espncdn.com/i/teamlogos/nfl/500/${id.toLowerCase()}.png`;
 
 // ------------- Demo data (IDs match ESPN) -------------
-const LAST_SEASON_EAST: Team[] = [
-  { id: "CLE", name: "Cleveland Cavaliers" },
-  { id: "BOS", name: "Boston Celtics" },
-  { id: "NYK", name: "New York Knicks" },
-  { id: "IND", name: "Indiana Pacers" },
-  { id: "MIL", name: "Milwaukee Bucks" },
-  { id: "DET", name: "Detroit Pistons" },
-  { id: "ORL", name: "Orlando Magic" },
-  { id: "ATL", name: "Atlanta Hawks" },
-  { id: "CHI", name: "Chicago Bulls" },
-  { id: "MIA", name: "Miami Heat" },
-  { id: "TOR", name: "Toronto Raptors" },
-  { id: "BKN", name: "Brooklyn Nets" },
-  { id: "PHI", name: "Philadelphia 76ers" },
-  { id: "CHA", name: "Charlotte Hornets" },
-  { id: "WAS", name: "Washington Wizards" },
-];
 
-const LAST_SEASON_WEST: Team[] = [
-  { id: "OKC", name: "Oklahoma City Thunder" },
-  { id: "HOU", name: "Houston Rockets" },
-  { id: "LAL", name: "Los Angeles Lakers" },
-  { id: "DEN", name: "Denver Nuggets" },
-  { id: "LAC", name: "Los Angeles Clippers" },
-  { id: "MIN", name: "Minnesota Timberwolves" },
-  { id: "GSW", name: "Golden State Warriors" },
-  { id: "MEM", name: "Memphis Grizzlies" },
-  { id: "SAC", name: "Sacramento Kings" },
-  { id: "DAL", name: "Dallas Mavericks" },
-  { id: "PHX", name: "Phoenix Suns" },
-  { id: "POR", name: "Portland Trail Blazers" },
-  { id: "SAS", name: "San Antonio Spurs" },
-  { id: "NO", name: "New Orleans Pelicans" },
-  { id: "UTAH", name: "Utah Jazz" },
-];
+// 14 playoff teams (AFC seeds 1–7, then NFC seeds 1–7)
+export const PLAYOFF_TEAMS: Team[] = [
+  // AFC
+  { id: "DEN", name: "Denver Broncos" },
+  { id: "NE",  name: "New England Patriots" },
+  { id: "JAX", name: "Jacksonville Jaguars" },
+  { id: "PIT", name: "Pittsburgh Steelers" },
+  { id: "HOU", name: "Houston Texans" },
+  { id: "BUF", name: "Buffalo Bills" },
+  { id: "LAC", name: "Los Angeles Chargers" },
 
-const EAST_TEAMS: Team[] = [
-  { id: "ATL", name: "Atlanta Hawks" },
-  { id: "BOS", name: "Boston Celtics" },
-  { id: "BKN", name: "Brooklyn Nets" },
-  { id: "CHA", name: "Charlotte Hornets" },
-  { id: "CHI", name: "Chicago Bulls" },
-  { id: "CLE", name: "Cleveland Cavaliers" },
-  { id: "DET", name: "Detroit Pistons" },
-  { id: "IND", name: "Indiana Pacers" },
-  { id: "MIA", name: "Miami Heat" },
-  { id: "MIL", name: "Milwaukee Bucks" },
-  { id: "NYK", name: "New York Knicks" },
-  { id: "ORL", name: "Orlando Magic" },
-  { id: "PHI", name: "Philadelphia 76ers" },
-  { id: "TOR", name: "Toronto Raptors" },
-  { id: "WAS", name: "Washington Wizards" },
-];
-
-const WEST_TEAMS: Team[] = [
-  { id: "DAL", name: "Dallas Mavericks" },
-  { id: "DEN", name: "Denver Nuggets" },
-  { id: "GSW", name: "Golden State Warriors" },
-  { id: "HOU", name: "Houston Rockets" },
-  { id: "LAC", name: "Los Angeles Clippers" },
-  { id: "LAL", name: "Los Angeles Lakers" },
-  { id: "MEM", name: "Memphis Grizzlies" },
-  { id: "MIN", name: "Minnesota Timberwolves" },
-  { id: "NO", name: "New Orleans Pelicans" },
-  { id: "OKC", name: "Oklahoma City Thunder" },
-  { id: "PHX", name: "Phoenix Suns" },
-  { id: "POR", name: "Portland Trail Blazers" },
-  { id: "SAC", name: "Sacramento Kings" },
-  { id: "SAS", name: "San Antonio Spurs" },
-  { id: "UTAH", name: "Utah Jazz" },
-];
-
-const VEGAS_EAST: Team[] = [
-  { id: "CLE", name: "Cleveland Cavaliers" },
-  { id: "NYK", name: "New York Knicks" },  
-  { id: "ORL", name: "Orlando Magic" },
-  { id: "PHI", name: "Philadelphia 76ers" },
-  { id: "ATL", name: "Atlanta Hawks" },
-  { id: "DET", name: "Detroit Pistons" },
-  { id: "MIL", name: "Milwaukee Bucks" },
-  { id: "BOS", name: "Boston Celtics" },
-  { id: "IND", name: "Indiana Pacers" },
-  { id: "MIA", name: "Miami Heat" },
-  { id: "TOR", name: "Toronto Raptors" },
-  { id: "CHI", name: "Chicago Bulls" },
-  { id: "CHA", name: "Charlotte Hornets" },
-  { id: "BKN", name: "Brooklyn Nets" },
-  { id: "WAS", name: "Washington Wizards" },
-];
-
-const VEGAS_WEST: Team[] = [
-  { id: "OKC", name: "Oklahoma City Thunder" },
-  { id: "DEN", name: "Denver Nuggets" },
-  { id: "HOU", name: "Houston Rockets" },  
-  { id: "MIN", name: "Minnesota Timberwolves" },
-  { id: "GSW", name: "Golden State Warriors" },
-  { id: "LAL", name: "Los Angeles Lakers" },
-  { id: "LAC", name: "Los Angeles Clippers" },
-  { id: "DAL", name: "Dallas Mavericks" },  
-  { id: "SAS", name: "San Antonio Spurs" },
-  { id: "MEM", name: "Memphis Grizzlies" },
-  { id: "NO", name: "New Orleans Pelicans" },
-  { id: "PHX", name: "Phoenix Suns" },
-  { id: "SAC", name: "Sacramento Kings" },
-  { id: "POR", name: "Portland Trail Blazers" },
-  { id: "UTAH", name: "Utah Jazz" },
+  // NFC
+  { id: "SEA", name: "Seattle Seahawks" },
+  { id: "CHI", name: "Chicago Bears" },
+  { id: "PHI", name: "Philadelphia Eagles" },
+  { id: "CAR", name: "Carolina Panthers" },
+  { id: "LAR", name: "Los Angeles Rams" },
+  { id: "SF",  name: "San Francisco 49ers" },
+  { id: "GB",  name: "Green Bay Packers" },
 ];
 
 
 // --- Ranking helpers (15 is max weight for the #1 team) ---
 const RANK_MAX = 14;                      // list length
-const weightForIndex = (i: number) => RANK_MAX - i; // 0→15, 14→1
+const weightForIndex = (i: number) => RANK_MAX - i; //
 
-// Convert a list order to a weight map: { ATL: 15, BOS: 14, ... }
+// Convert a list order to a weight map: 
 type WeightMap = Record<string, number>;
 const listToWeights = (list: Team[]): WeightMap =>
   Object.fromEntries(list.map((t, i) => [t.id, weightForIndex(i)]));
@@ -981,46 +895,43 @@ export default function NBAPoolApp() {
 
   {/* ----- Saved entries goes here (ABOVE the toolbar) ----- */}
   {page === "picks" && (
-    <>
-      <SavedEntriesRow
-        entries={entries}
-        onOpen={(e) => setSelectedEntry(e)}
+  <>
+    <SavedEntriesRow entries={entries} onOpen={(e) => setSelectedEntry(e)} />
+
+    {selectedEntry ? (
+      <SavedEntryView
+        entry={selectedEntry}
+        onClose={() => setSelectedEntry(null)}
       />
-
-    {!selectedEntry && (
+    ) : (
       <>
-      {/* Toolbar: 2024–25 Results / A–Z / Vegas Odds / Save My Entry */}
-      <div className="flex flex-wrap gap-2 mt-2 mb-6">
-        <button
-          onClick={() => {
-            if (isAuthRequired) { setShowAuth(true); return; }
-            setShowNameModal(true);
-          }}
-          className="rounded-xl px-3 py-2 bg-emerald-600 border-emerald-200 hover:bg-emerald-500 text-sm font-semibold"
-        >
-          Submit Picks
-        </button>
-      </div>
-          
-          {/* Only show picks interface if authenticated */}
-          {!isAuthRequired && (
-            <>
-              {/* Mobile: single column with toggle */}
-             <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
-                  {title}
-                </h3>
-                <span className="text-[10px] text-white/40">drag to reorder</span>
-              </div>
+        <div className="flex flex-wrap gap-2 mt-2 mb-6">
+          <button
+            onClick={() => {
+              if (isAuthRequired) {
+                setShowAuth(true);
+                return;
+              }
+              setShowNameModal(true);
+            }}
+            className="rounded-xl px-3 py-2 bg-emerald-600 border-emerald-200 hover:bg-emerald-500 text-sm font-semibold"
+          >
+            Submit Picks
+          </button>
+        </div>
 
-      {selectedEntry && (
-        <SavedEntryView
-          entry={selectedEntry}
-          onClose={() => setSelectedEntry(null)}
-        />
-      )}
-    </>
-  )}
+        {!isAuthRequired && (
+          <ListColumn
+            title="Rank all 14 teams"
+            list={teams}
+            setList={setTeams}
+          />
+        )}
+      </>
+    )}
+  </>
+)}
+
 
 
 
