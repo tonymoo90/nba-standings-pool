@@ -1,0 +1,90 @@
+{
+  "flavors_by_country": {
+    "China": [
+      "Asian Aromatics – Garlic, Ginger, and Green Onion (Sometimes Carrot)",
+      "Chinese Trinity – Scallions, Ginger, and Garlic (Sometimes Carrot)",
+      "Szechuan Trinity – Green Garlic, Ginger, and Chile Peppers"
+    ],
+    "Italy": [
+      "Battuto – Diced Onions, Celery, Carrots, Garlic, and Parsley sautéed in Lard, Butter, or Olive Oil",
+      "Caponata – Eggplant, Celery, Onions, Tomatoes, Capers, and Sweetened Vinegar",
+      "Giardiniera – Pickled Olives, Onions, Celery, Zucchini, Carrots, and Cauliflower",
+      "Gremolata – Parsley, Garlic, and Lemon Zest",
+      "Pesto – Basil, Pine Nuts, Garlic, Olive Oil, and Parmesan Cheese",
+      "Salmoriglio – Olive Oil, Lemon Juice, Garlic, and Oregano",
+      "Soffritto – Diced Onions, Celery, and Carrots sautéed in Olive Oil",
+      "Italian Soffritto Trinity – Tomato, Garlic, and Basil"
+    ],
+    "France": [
+      "Duxelles – Onions, Shallots, and Mushrooms sautéed in Butter",
+      "Mirepoix – Carrots, Celery, and Onions sautéed in Butter",
+      "Pistou – Olive Oil, Basil, and Garlic",
+      "Ravigote – Oil and Vinegar (or Mayo), Onion/Shallot, Capers, Chervil, Parsley, and Tarragon",
+      "Remoulade – Mayonnaise or Mustard base with Green Onions, Celery, and Parsley",
+      "Tapenade – Chopped Olives, Capers, Anchovies, and Olive Oil",
+      "French Trinity – Onion, Celery, and Carrot"
+    ],
+    "England": [
+      "English Aromatics – Celery and Leek combined with Cheese or Potato",
+      "Piccalilli – Pickled Cauliflower, Cucumber, Onions, and Squash seasoned with Mustard and Turmeric"
+    ],
+    "United States": [
+      "Cajun Trinity (Louisiana) – Onion, Celery, and Bell Pepper seasoned with Parsley, Bay Leaf, Green Onions, and Cayenne",
+      "Creole Trinity (Louisiana) – Onion, Celery, and Bell Pepper plus Garlic and Tomato",
+      "Chowchow – Pickled Cabbage with Tomatoes, Carrots, Beans, and Cauliflower",
+      "Relish – Cooked Pickled, Chopped Vegetable Mix",
+      "Tartar Sauce – Mayonnaise with Pickled Cucumber, Capers, Onions, and Parsley",
+      "Tex Mex – Garlic, Black Pepper, and Cumin",
+      "Ravigote (Louisiana) – Oil and Vinegar (or Mayo), Onion, Capers, and Herbs",
+      "Remoulade (Louisiana) – Mayonnaise or Mustard with Celery, Parsley, and Cayenne"
+    ],
+    "Morocco": [
+      "Chermoula – Onion, Cilantro, Parsley, Garlic, Cumin, Paprika, and Cayenne"
+    ],
+    "Argentina": [
+      "Chimichurri – Parsley, Garlic, Oil, Vinegar, and Red Pepper Flakes"
+    ],
+    "India": [
+      "Chutney – Green Chile Peppers with Fruits and Vegetables in Oil, Vinegar, or Lemon Juice",
+      "Indian Trinity – Onion, Garlic, and Ginger"
+    ],
+    "Cuba": [
+      "Mojo – Citrus Juice, Olive Oil, Garlic, Oregano, Cumin, Salt, and Pepper",
+      "Sofrito (Cuban) – Onions, Peppers, Tomatoes, and Garlic"
+    ],
+    "Mexico": [
+      "Mole – Puréed Peppers, Chiles, Chocolate, and Nuts",
+      "Salsa – Tomatoes, Chile Peppers, Onion, Garlic, and Lime Juice",
+      "Salsa Verde – Tomatillos, Chile Peppers, and Cilantro"
+    ],
+    "Costa Rica": [
+      "Olores – Onions, Celery, Bell Pepper, and Garlic"
+    ],
+    "Puerto Rico": [
+      "Recaíto – Onions, Garlic, Ajicitos, Green Bell Pepper, Cilantro, and Culantro"
+    ],
+    "Spain": [
+      "Sofrito (Spanish) – Onions, Tomatoes, and Garlic sautéed in Olive Oil",
+      "Spanish Trinity – Onion, Tomato, and Garlic"
+    ],
+    "Germany": [
+      "Suppengrün – Carrots, Celery Root, and Leeks (sometimes Onions, Parsnips, and Potatoes)"
+    ],
+    "Poland": [
+      "Włoszczyzna – Leeks, Carrots, Celery Root, and Parsley Root"
+    ],
+    "Thailand": [
+      "Thai Trinity – Galangal, Kaffir Lime, and Lemongrass"
+    ],
+    "Lebanon": [
+      "Lebanese Trinity – Garlic, Lemon Juice, and Olive Oil"
+    ],
+    "Africa": [
+      "Piri Piri – Vinegar, Olive Oil, Lime, Garlic, Chiles, and Spices"
+    ],
+    "General/Multiple Regions": [
+      "Trinity – Common combinations like Onion, Celery, and Carrot or Garlic, Ginger, and Scallions",
+      "Sofrito (Hispanic) – Onions, Peppers, Garlic, and Cilantro in Olive Oil"
+    ]
+  }
+}

@@ -9,34 +9,45 @@ import NameModal from "./NameModal";
 import { createPortal } from "react-dom";
 import { StandingsTable } from "./StandingsTable";
 import { ArrowUpDown } from "lucide-react";
+import EntryBreakdownWeighted from "./EntryBreakdownWeighted";
 
 // ---------- Types ----------
 type Team = { id: string; name: string };
-type Conference = "east" | "west";
 type Page = "picks" | "pool" | "how";
 type Entry = {
   id: string;
   name: string;
-  east: Team[];
-  west: Team[];
-  submittedAt: string;
+  teams: Team[];
+  submittedAt?: string;
+  points?: number;
+  userId?: string;
 };
 
+type LeaderboardRow = {
+  id: string;
+  name: string | null;
+  user_id: string | null;
+  season: string | null;
+  submitted_at: string | null;
+  points: number;
+};
+
+
 // Map DB row (snake_case) -> UI Entry (camelCase)
-type DbEntry = { id: string; name: string; east: Team[]; west: Team[]; submitted_at: string };
+type DbEntry = { id: string; name: string; teams: Team[]; submitted_at: string };
 const toEntry = (db: DbEntry): Entry => ({
   id: db.id,
   name: db.name,
-  east: db.east,
-  west: db.west,
+  teams: db.teams,
   submittedAt: db.submitted_at,
 });
+
 
 // state
 
 // ---------- Utils ----------
 const getLogo = (id: string) =>
-  `https://a.espncdn.com/i/teamlogos/nba/500/${id.toLowerCase()}.png`;
+  `https://a.espncdn.com/i/teamlogos/nfl/500/${id.toLowerCase()}.png`;
 
 // ------------- Demo data (IDs match ESPN) -------------
 const LAST_SEASON_EAST: Team[] = [
@@ -149,7 +160,7 @@ const VEGAS_WEST: Team[] = [
 
 
 // --- Ranking helpers (15 is max weight for the #1 team) ---
-const RANK_MAX = 15;                      // list length
+const RANK_MAX = 14;                      // list length
 const weightForIndex = (i: number) => RANK_MAX - i; // 0→15, 14→1
 
 // Convert a list order to a weight map: { ATL: 15, BOS: 14, ... }
@@ -161,15 +172,15 @@ const listToWeights = (list: Team[]): WeightMap =>
 type TeamWins = Record<string, number>;   // e.g. { BOS: 64, ATL: 41, ... }
 
 // Compute a user's score (east + west) using wins × rank-weight
-const scoreEntry = (east: Team[], west: Team[], wins: TeamWins) => {
-  const wEast = listToWeights(east);
-  const wWest = listToWeights(west);
+const scoreEntry = (teams: Team[], wins: TeamWins) => {
+  const w = listToWeights(teams);
   let total = 0;
-  for (const [id, wt] of Object.entries({ ...wEast, ...wWest })) {
+  for (const [id, wt] of Object.entries(w)) {
     total += (wins[id] ?? 0) * wt;
   }
   return total;
 };
+
 
 
 function useAuth() {
@@ -234,57 +245,18 @@ function ListColumn({
   title,
   list,
   setList,
-  activeTab,
-  setActiveTab,
-  showMobileToggle,
-  isMobile = false,
-  locked,                  // <-- NEW
 }: {
   title: string;
   list: Team[];
   setList: (next: Team[]) => void;
-  activeTab: Conference;
-  setActiveTab: (tab: Conference) => void;
-  showMobileToggle: boolean;
-  isMobile?: boolean;
 }) {
   return (
     <div className="w-full">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {showMobileToggle ? (
-            <>
-              <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
-                Conference
-              </h3>
-              <div className="flex bg-white/10 rounded-full overflow-hidden p-[3px]">
-                <button
-                  onClick={() => setActiveTab("east")}
-                  className={`px-6 py-6 text-sm font-semibold rounded-full transition ${
-                    activeTab === "east" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
-                  }`}
-                >
-                  East
-                </button>
-                <button
-                  onClick={() => setActiveTab("west")}
-                  className={`px-6 py-6 text-sm font-semibold rounded-full transition ${
-                    activeTab === "west" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
-                  }`}
-                >
-                  West
-                </button>
-              </div>
-            </>
-          ) : (
-            <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
-              {title}
-            </h3>
-          )}
-        </div>
-        <span className="text-[10px] text-white/40">
-          {isMobile ? "" : "drag to reorder"}
-        </span>
+        <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
+          {title}
+        </h3>
+        <span className="text-[10px] text-white/40">drag to reorder</span>
       </div>
 
       <ReactSortable
@@ -292,9 +264,9 @@ function ListColumn({
         setList={setList}
         animation={200}
         className="flex flex-col gap-2"
-        handle={isMobile ? ".drag-handle" : undefined}
+        handle=".drag-handle"
         ghostClass="sortable-ghost"
-        dragClass="sortable-drag"            // <-- add this
+        dragClass="sortable-drag"
       >
         {list.map((t, i) => (
           <TeamRow key={t.id} t={t} index={i} />
@@ -449,7 +421,7 @@ function HowItWorks() {
 
   const [demoConf, setDemoConf] = React.useState<"east" | "west">("east");
   const [demo, setDemo] = React.useState(eastList);
-  const TOTAL_RANKS = 15; // real rules
+  const TOTAL_RANKS = 154 // real rules
   const weightForRank = (rank: number) => 16 - rank; // 1→15 … 15→1
 
 
@@ -486,7 +458,7 @@ function HowItWorks() {
           {/* DEMO */}
           <div>
             <h3 className="text-xl font-semibold tracking-wider text-white/70 uppercase mb-3">
-              Rank all 30 teams across both conferences.
+              Rank all 14 teams.
             </h3>
 
             <p className="text-sm text-white/70 mb-3 text-base leading-relaxed">
@@ -607,18 +579,20 @@ function HowItWorks() {
 // ---------- App ----------
 export default function NBAPoolApp() {
   // --- state first ---
-  const [east, setEast] = useState<Team[]>(EAST_TEAMS);
-  const [west, setWest] = useState<Team[]>(WEST_TEAMS);
-  const [activeTab, setActiveTab] = useState<Conference>("east");
+  const [teams, setTeams] = useState<Team[]>(PLAYOFF_TEAMS);
   const [page, setPage] = useState<Page>("picks");
   const [entries, setEntries] = useState<any[]>([]);
   const user = useAuth();
   const [taggedEmail, setTaggedEmail] = useState<string | null>(null);
-  const SEASON = "2025-26";
+  const SEASON = "NFL 2026 PLAYOFFS";
   const [showAuth, setShowAuth] = React.useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<any | null>(null);
+  const [board, setBoard] = useState<LeaderboardRow[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<string | undefined>();
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [breakdownEntryId, setBreakdownEntryId] = useState<string | null>(null);
 
   // standings/pool state
   const [standingsCount, setStandingsCount] = useState<number>(0);
@@ -628,19 +602,47 @@ export default function NBAPoolApp() {
   const wins: TeamWins = {};
 
   // helper: compute points for one entry
-  const pointsFor = (e: Entry) => scoreEntry(e.east, e.west, wins);
+  const pointsFor = (e: Entry) => scoreEntry(e.teams, wins);
+
 
   // compute scored “pool” entries for the Standings
-  const scoredPublic = React.useMemo(
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+
+  useEffect(() => {
+    (async () => {
+      const { data: lb, error } = await supabase
+        .from("leaderboard_weighted")
+        .select("*")
+        .order("points", { ascending: false });
+
+      if (error) {
+        console.error("[leaderboard] load error", error);
+        return;
+      }
+      setLeaderboard(lb ?? []);
+
+      // get last updated time from team_wins
+      const { data: tw } = await supabase
+        .from("team_wins")
+        .select("updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (tw && tw.length > 0) setUpdatedAt(tw[0].updated_at);
+    })();
+  }, []);
+
+
+  const scoredPublic = useMemo(
     () =>
-      publicEntries.map((e: any) => ({
-        id: e.id,
-        name: e.name,
-        userId: e.user_id,                 // make sure you SELECT this below
-        points: pointsFor(e),
-        submittedAt: e.submittedAt,
+      leaderboard.map((r) => ({
+        id: r.id,
+        name: r.name,
+        userId: r.user_id,
+        points: r.points,
+        submittedAt: r.submitted_at,
       })),
-    [publicEntries, wins]
+    [leaderboard]
   );
 
   const [myEntryId, setMyEntryId] = useState<string | null>(null);
@@ -658,7 +660,7 @@ export default function NBAPoolApp() {
     (async () => {
       const { data, error } = await supabase
         .from("entries")
-        .select("id,name,east,west,submitted_at")
+        .select("id,name,teams,submitted_at")
         .eq("season", SEASON)
         .eq("is_public", true)
         .order("submitted_at", { ascending: false });
@@ -674,6 +676,11 @@ export default function NBAPoolApp() {
     return () => { cancelled = true; };
   }, [SEASON]);
  
+  
+  useEffect(() => {
+    if (user?.id) setCurrentUserId(user.id);
+  }, [user]);
+
   // Load the user's saved entries on sign-in / refresh
   useEffect(() => {
     if (!user) return;
@@ -683,7 +690,7 @@ export default function NBAPoolApp() {
     (async () => {
       const { data, error } = await supabase
         .from("entries")
-        .select("id,name,east,west,submitted_at")
+        .select("id,name,teams,submitted_at")
         .eq("user_id", user.id)
         .eq("season", SEASON)            // keep per-season, or remove this line for all seasons
         .order("submitted_at", { ascending: false });
@@ -726,6 +733,23 @@ export default function NBAPoolApp() {
     };
   }, [user]);
 
+  useEffect(() => {
+    (async () => {
+      // 1) leaderboard (computed in SQL: leaderboard_weighted)
+      const { data: lb, error: lbErr } = await supabase
+        .from("leaderboard_weighted")
+        .select("*");
+      if (!lbErr && lb) setBoard(lb as LeaderboardRow[]);
+
+      // 2) latest wins.updated_at for the "Last updated" label
+      const { data: tw, error: twErr } = await supabase
+        .from("team_wins")
+        .select("updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (!twErr && tw?.length) setUpdatedAt(tw[0].updated_at as string);
+    })();
+  }, []);
 
     // OPEN the modal whenever auth is required
   React.useEffect(() => {
@@ -751,29 +775,12 @@ export default function NBAPoolApp() {
     alert("You’ve been logged out.");
   }
 
-function resetVegasOdds() {
-  setEast([...VEGAS_EAST]);
-  setWest([...VEGAS_WEST]);
-}
-
-  function autofillLastSeason() {
-    // Use your last-season helpers if you want; keeping demo simple
-    // setEast(LAST_SEASON_EAST); setWest(LAST_SEASON_WEST);
-    setEast(LAST_SEASON_EAST);
-    setWest(LAST_SEASON_WEST);
-  }
-
-  function resetAlphabetical() {
-    setEast([...EAST_TEAMS]);
-    setWest([...WEST_TEAMS]);
-  }
 
   function saveMyEntry(name = "You") {
   const entry: Entry = {
     id: String(Date.now()),
     name,
-    east: [...east],
-    west: [...west],
+    teams: [...teams],
     submittedAt: new Date().toISOString(),
   };
   setEntries((prev) => [entry, ...prev]);   // ✅ use `entry`
@@ -788,8 +795,7 @@ function resetVegasOdds() {
         user_id: user.id,
         email: user.email,
         name,
-        east,
-        west,
+        teams,
         season: SEASON,
         is_public: true,
         submitted_at: new Date().toISOString(),
@@ -824,7 +830,64 @@ function resetVegasOdds() {
     }
   }
 
+
+  useEffect(() => {
+  if (!user) return;
+
+  let cancelled = false;
+
+  (async () => {
+    // 1️⃣ Load entries
+    const { data, error } = await supabase
+      .from("entries")
+      .select("id,name,teams,submitted_at")
+      .eq("user_id", user.id)
+      .eq("season", SEASON)
+      .order("submitted_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const base = (data ?? []).map(toEntry);
+    if (cancelled) return;
+
+    // 2️⃣ Save base entries
+    setEntries(base);
+
+    // 3️⃣ Batch fetch points from leaderboard_weighted
+    const ids = base.map((e) => e.id);
+    if (ids.length) {
+      const { data: rows, error: ptsErr } = await supabase
+        .from("leaderboard_weighted")
+        .select("id, points")
+        .in("id", ids);
+
+      if (!ptsErr && rows) {
+        const ptsMap = new Map(rows.map((r) => [r.id, r.points as number]));
+        setEntries((prev) =>
+          prev.map((e) => ({ ...e, points: ptsMap.get(e.id) ?? 0 }))
+        );
+      }
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+}, [user, SEASON]);
+
+
   const myCount = entries?.length ?? 0; // assuming entries = current user’s entries
+
+  const entriesForStandings = board.map((r) => ({
+    id: r.id,
+    name: r.name ?? "Anonymous",
+    userId: r.user_id ?? undefined,
+    points: r.points ?? 0,
+    submittedAt: r.submitted_at ?? undefined,
+  }));
 
   return (
     <div className="min-h-[100vh] w-full bg-[#0b0f17] text-white">
@@ -858,7 +921,7 @@ function resetVegasOdds() {
 
               {/* Title with explicit colors (inline style beats inherited text color) */}
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                <span className="uppercase" style={{ color: "#2563EB" }}>NBA</span>{" "}
+                <span className="uppercase" style={{ color: "#2563EB" }}>NFL</span>{" "}
                 <span className="uppercase" style={{ color: "#D50032" }}>Confidence</span>
               </h1>
             </div>
@@ -929,21 +992,6 @@ function resetVegasOdds() {
       {/* Toolbar: 2024–25 Results / A–Z / Vegas Odds / Save My Entry */}
       <div className="flex flex-wrap gap-2 mt-2 mb-6">
         <button
-          onClick={resetAlphabetical}
-          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
-        >
-          <ArrowUpDown size={12} />
-          A-Z
-        </button>
-
-        <button
-          onClick={resetVegasOdds}
-          className="rounded-xl px-3 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium flex items-center gap-2"
-        >
-          <ArrowUpDown size={12} />
-          2026 Odds
-        </button>
-        <button
           onClick={() => {
             if (isAuthRequired) { setShowAuth(true); return; }
             setShowNameModal(true);
@@ -958,63 +1006,12 @@ function resetVegasOdds() {
           {!isAuthRequired && (
             <>
               {/* Mobile: single column with toggle */}
-              <div className="block md:hidden mb-6">
-                {activeTab === "east" ? (
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                    <ListColumn
-                      title="Eastern Conference"
-                      list={east}
-                      setList={setEast}
-                      activeTab={activeTab}
-                      setActiveTab={setActiveTab}
-                      showMobileToggle={true}
-                      isMobile={true}
-                    />
-                  </div>
-                ) : (
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                    <ListColumn
-                      title="Western Conference"
-                      list={west}
-                      setList={setWest}
-                      activeTab={activeTab}
-                      setActiveTab={setActiveTab}
-                      showMobileToggle={true}
-                      isMobile={true}
-                    />
-                  </div>
-                )}
+             <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm tracking-wider text-white/70 font-semibold uppercase">
+                  {title}
+                </h3>
+                <span className="text-[10px] text-white/40">drag to reorder</span>
               </div>
-
-              {/* Desktop: two columns, no toggle */}
-              <div className="hidden md:grid grid-cols-2 gap-6">
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                  <ListColumn
-                    title="Eastern Conference"
-                    list={east}
-                    setList={setEast}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    showMobileToggle={false}
-                    isMobile={false}
-                  />
-                </div>
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                  <ListColumn
-                    title="Western Conference"
-                    list={west}
-                    setList={setWest}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    showMobileToggle={false}
-                    isMobile={false}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
 
       {selectedEntry && (
         <SavedEntryView
@@ -1034,8 +1031,13 @@ function resetVegasOdds() {
               entries={scoredPublic}
               currentUserId={user?.id || undefined}
               updatedAt={lastSaved?.submitted_at}
-            />
-          </div>
+              onOpenEntry={(id) => setBreakdownEntryId(id)}   // ← enables the “View” button
+              />
+
+              {breakdownEntryId && (
+                <EntryBreakdownWeighted entryId={breakdownEntryId} />
+              )}
+            </div>
         )}
 
 
@@ -1108,46 +1110,53 @@ function resetVegasOdds() {
 }
 
   function SavedEntryTile({ entry, onClick }: { entry: Entry; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="
-        group relative block shrink-0
-        rounded-2xl overflow-hidden
-        border border-white/10
-        bg-white/5 hover:border-white/20 hover:bg-white/[0.08]
-        transition
-        focus:outline-none focus:ring-2 focus:ring-indigo-500
-      "
-      style={{ 
-        width: '160px', 
-        minWidth: '160px', 
-        height: '80px' 
-      }}
-    >
-      <div className="px-4 py-3 h-full flex flex-col justify-between">
-        {/* Top section: name and score */}
-        <div className="flex items-center gap-2 min-w-0 w-full mb-3">
-          <span 
-            className="truncate font-semibold text-white/90 min-w-0 flex-1 block"
-            style={{ fontSize: '13px', lineHeight: '1.2' }}
-          >
-            {entry.name}
-          </span>
-          <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
-            0
-          </span>
+    const [pts, setPts] = React.useState<number | null>(entry.points ?? null);
+
+    React.useEffect(() => {
+      if (pts != null) return;
+      supabase.from("leaderboard_weighted").select("points").eq("id", entry.id).single()
+        .then(({ data }) => setPts(data?.points ?? 0));
+    }, [entry.id, pts]);
+
+    return (
+      <button
+        onClick={onClick}
+        className="
+          group relative block shrink-0
+          rounded-2xl overflow-hidden
+          border border-white/10
+          bg-white/5 hover:border-white/20 hover:bg-white/[0.08]
+          transition
+          focus:outline-none focus:ring-2 focus:ring-indigo-500
+        "
+        style={{ 
+          width: '160px', 
+          minWidth: '160px', 
+          height: '80px' 
+        }}
+      >
+        <div className="px-4 py-3 h-full flex flex-col justify-between">
+          {/* Top section: name and score */}
+          <div className="flex items-center gap-2 min-w-0 w-full mb-3">
+            <span 
+              className="truncate font-semibold text-white/90 min-w-0 flex-1 block"
+              style={{ fontSize: '13px', lineHeight: '1.2' }}
+            >
+              {entry.name}
+            </span>
+            <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-white/80">
+              {(pts ?? 0).toLocaleString()}
+            </span>
+          </div>
+          
+          {/* Bottom section: Logo rows */}
+          <div className="space-y-2">
+            <LogoRow label="" teams={entry.teams} limit={10} size={22} overlap={9} />
+          </div>
         </div>
-        
-        {/* Bottom section: Logo rows */}
-        <div className="space-y-2">
-          <LogoRow teams={entry.east} limit={8} size={22} overlap={9} />
-          <LogoRow teams={entry.west} limit={8} size={22} overlap={9} />
-        </div>
-      </div>
-    </button>
-  );
-}
+      </button>
+    );
+  }
 
 function SavedEntriesRow({
   entries,
@@ -1178,8 +1187,6 @@ function SavedEntriesRow({
 
 function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void }) {
   if (!entry) return null;
-  
-  const [viewConf, setViewConf] = React.useState<"east" | "west">("east");
 
   // Close on ESC
   React.useEffect(() => {
@@ -1192,8 +1199,13 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
   React.useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, []);
+
+  const submittedLabel =
+    entry.submittedAt ? new Date(entry.submittedAt).toLocaleString() : "";
 
   const overlay = (
     <div
@@ -1202,24 +1214,32 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
       aria-modal="true"
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Panel */}
       <div
         className="relative w-full max-w-5xl
-             h-[90vh] sm:h-[85vh] min-h-0  
+             h-[90vh] sm:h-[85vh] min-h-0
              rounded-2xl border border-white/10 bg-[#0b0f17] shadow-2xl
              flex flex-col"
       >
         {/* Header (fixed) */}
         <div className="flex-none sticky top-0 z-10 border-b border-white/10 bg-[#0b0f17]/95">
           <div className="flex items-center justify-between px-3 py-3 sm:px-5 sm:py-4">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 mb-4">
-              <h3 className="text-sm sm:text-lg font-semibold truncate">{entry.name}</h3>
-              <span className="text-[10px] sm:text-xs text-white/60 hidden sm:inline">
-                {new Date(entry.submittedAt).toLocaleString()}
-              </span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <h3 className="text-sm sm:text-lg font-semibold truncate">
+                {entry.name}
+              </h3>
+              {submittedLabel && (
+                <span className="text-[10px] sm:text-xs text-white/60 hidden sm:inline">
+                  {submittedLabel}
+                </span>
+              )}
             </div>
+
             <button
               onClick={onClose}
               aria-label="Close"
@@ -1227,83 +1247,36 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
                          text-white/70 hover:text-white hover:bg-white/10
                          focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sm:w-[18px] sm:h-[18px]">
-                <path d="M6 6l12 12M18 6L6 18"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="sm:w-[18px] sm:h-[18px]"
+              >
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </button>
           </div>
 
-          {/* Mobile toggle - only visible on small screens */}
-          <div className="flex sm:hidden items-center  gap-2 px-3 pb-3 mb-4">
-            <span className="text-xs tracking-wider text-white/60 font-semibold uppercase">Conference</span>
-            <div className="toggle-pill">
-              <button
-                onClick={() => setViewConf("east")}
-                className={`px-6 py-2 text-xs font-semibold rounded-full transition ${
-                  viewConf === "east" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
-                }`}
-              >
-                East
-              </button>
-              <button
-                onClick={() => setViewConf("west")}
-                className={`px-6 py-2 text-xs font-semibold rounded-full transition ${
-                  viewConf === "west" ? "bg-indigo-600 text-white shadow-md" : "text-white/70"
-                }`}
-              >
-                West
-              </button>
-            </div>
+          {/* Optional tiny hint */}
+          <div className="px-3 pb-3 sm:px-5 text-[11px] text-white/50">
+            Ranked 14 → 1 (top team worth 14× per playoff win)
           </div>
         </div>
 
         {/* Body (scrolls) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6 mb-2">
-          {/* Mobile: single column with toggle */}
-          <div className="block sm:hidden">
-            {viewConf === "east" ? (
-              <div>
-            
-                <div className="flex flex-col gap-1.5">
-                  {entry.east.map((t, i) => (
-                    <TeamRowCompact key={t.id} t={t} index={i} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex flex-col gap-1.5">
-                  {entry.west.map((t, i) => (
-                    <TeamRowCompact key={t.id} t={t} index={i} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop: 2 columns side by side */}
-          <div className="hidden sm:grid grid-cols-2 gap-6">
-            <div>
-              <div className="text-xs tracking-wider text-white/60 uppercase mb-3">
-                Eastern Conference
-              </div>
-              <div className="flex flex-col gap-2">
-                {entry.east.map((t, i) => (
-                  <TeamRow key={t.id} t={t} index={i} locked />
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs tracking-wider text-white/60 uppercase mb-3">
-                Western Conference
-              </div>
-              <div className="flex flex-col gap-2">
-                {entry.west.map((t, i) => (
-                  <TeamRow key={t.id} t={t} index={i} locked />
-                ))}
-              </div>
-            </div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">
+          {/* Single column list (mobile + desktop) */}
+          <div className="space-y-2">
+            {entry.teams.map((t, i) => (
+              <TeamRow key={t.id} t={t} index={i} locked />
+            ))}
           </div>
         </div>
       </div>
@@ -1318,50 +1291,21 @@ function SavedEntryView({ entry, onClose }: { entry: Entry; onClose: () => void 
   return overlay;
 }
 
-// Compact version of TeamRow for mobile modal view
-function TeamRowCompact({ t, index }: { t: Team; index: number }) {
-  const weight = weightForIndex(index);
-  return (        
-    <div className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 select-none mb-3">
-  
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span className="ml-1 text-[10px] text-white/50 shrink-0">×{weight}</span>      
-        <img
-          src={getLogo(t.id)}
-          alt={t.name}
-          className="w-1 h-1 object-contain rounded-full bg-white/10 shrink-0"
-          style={{ width: "5%", height: "5%" }} // beats any global img rules
-          draggable={false}
-        />
-
-        <span className="font-medium text-xs truncate px-6">{t.name}</span>
-
-      </div>
-    </div>
-  );
-}
-
 function EntryAvatar({ entry }: { entry: Entry }) {
-  const eastTop = entry.east?.[0];
-  const westTop = entry.west?.[0];
+  const top = entry.teams.slice(0, 2);
+
   return (
     <div className="relative h-6 w-10">
-      {westTop && (
+      {top.map((t, i) => (
         <img
-          src={getLogo(westTop.id)}
-          alt={westTop.name}
-          className="absolute right-0 top-0 h-5 w-5 rounded-full border border-white/20 bg-white/10 object-contain"
+          key={t.id}
+          src={getLogo(t.id)}
+          alt={t.name}
+          className="absolute top-0 h-5 w-5 rounded-full border border-white/20 bg-white/10 object-contain"
+          style={{ left: i * 12 }}
           draggable={false}
         />
-      )}
-      {eastTop && (
-        <img
-          src={getLogo(eastTop.id)}
-          alt={eastTop.name}
-          className="absolute left-0 bottom-0 h-5 w-5 rounded-full border border-white/20 bg-white/10 object-contain"
-          draggable={false}
-        />
-      )}
+      ))}
     </div>
   );
 }

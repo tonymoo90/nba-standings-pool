@@ -5,4 +5,5 @@
 # Run twice nightly during season (UTC)
 [[scheduled.functions]]
   name = "update-wins"
-  cron = "0 5,9 * * *"
+  cron = "0 * * * *"
+
