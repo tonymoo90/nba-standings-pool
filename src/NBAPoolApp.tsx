@@ -822,22 +822,15 @@ export default function NBAPoolApp() {
           <div className="flex items-center justify-between mb-6">
             {/* LEFT: Logo + Title */}
             <div className="flex items-center gap-3">
-              {/* Hard cap the logo size no matter what globals say */}
-              <div
-                className="shrink-0 overflow-hidden"
-                style={{ width: 15, height: 25 }}          // <= tweak 40 → 48 if you want bigger
-              >
-                <img
-                  src="/nfllogo.png"
-                  alt="NFL Confidence Logo"
-                  className="block w-full h-full object-contain"
-                />
-              </div>
+              <img
+                src="/National_Football_League_logo.svg"
+                alt="NFL Confidence Logo"
+                className="w-9 h-9 sm:w-10 sm:h-10 opacity-90 object-contain"
+              />
 
-              {/* Title with explicit colors (inline style beats inherited text color) */}
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                <span className="uppercase" style={{ color: "#2563EB" }}>NFL</span>{" "}
-                <span className="uppercase" style={{ color: "#D50032" }}>Confidence</span>
+                <span className="uppercase text-blue-600">NFL</span>{" "}
+                <span className="uppercase text-red-600">Confidence</span>
               </h1>
             </div>
 
